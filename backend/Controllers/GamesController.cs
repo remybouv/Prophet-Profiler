@@ -96,7 +96,7 @@ public class GamesController : ControllerBase
     }
     
     [HttpPost("rank")]
-    public async Task<ActionResult<List<MatchScore>> RankGames([FromBody] List<Guid> playerIds)
+    public async Task<ActionResult<List<MatchScore>>> RankGames([FromBody] List<Guid> playerIds)
     {
         var players = await _context.Players
             .Include(p => p.Profile)
