@@ -3,7 +3,7 @@ import 'package:prophet_profiler/src/data/models/player_model.dart';
 
 class ApiService {
   late final Dio _dio;
-  static const String baseUrl = 'http://localhost:5000/api';
+  static const String baseUrl = 'https://localhost:49704/api';
 
   ApiService() {
     _dio = Dio(BaseOptions(
