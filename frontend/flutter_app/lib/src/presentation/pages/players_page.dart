@@ -79,10 +79,13 @@ class _PlayersPageState extends State<PlayersPage> {
                         return ListTile(
                           leading: CircleAvatar(
                             backgroundColor: Colors.amber,
-                            child: Text(player.nickname[0].toUpperCase()),
+                            child: Text(player.name.isNotEmpty ? player.name[0].toUpperCase() : '?'),
                           ),
-                          title: Text(player.nickname),
-                          subtitle: Text('ELO: ${player.eloScore.toStringAsFixed(0)}'),
+                          title: Text(player.name),
+                          subtitle: Text(
+                            'A:${player.profile.aggressivity} P:${player.profile.patience} '
+                            'A:${player.profile.analysis} B:${player.profile.bluff}',
+                          ),
                         );
                       },
                     ),
