@@ -1,17 +1,36 @@
+import 'dart:developer' as developer;
 import 'package:dio/dio.dart';
+import 'package:prophet_profiler/src/core/config/app_config.dart';
 import 'package:prophet_profiler/src/data/models/player_model.dart';
 
 class ApiService {
   late final Dio _dio;
-  static const String baseUrl = 'http://localhost:5000/api';
+  static String get baseUrl => AppConfig.apiBaseUrl;
 
   ApiService() {
+    developer.log('🔌 ApiService initialisé avec URL: $baseUrl', name: 'ApiService');
     _dio = Dio(BaseOptions(
       baseUrl: baseUrl,
       connectTimeout: const Duration(seconds: 5),
       receiveTimeout: const Duration(seconds: 5),
       headers: {
         'Content-Type': 'application/json',
+      },
+    ));
+    
+    // Intercepteur pour logger les requêtes/réponses
+    _dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) {
+        developer.log('📤 REQUEST: ${options.method} ${options.path}', name: 'ApiService');
+        return handler.next(options);
+      },
+      onResponse: (response, handler) {
+        developer.log('📥 RESPONSE: ${response.statusCode} ${response.requestOptions.path}', name: 'ApiService');
+        return handler.next(response);
+      },
+      onError: (error, handler) {
+        developer.log('❌ ERROR: ${error.message} | ${error.requestOptions.path}', name: 'ApiService');
+        return handler.next(error);
       },
     ));
   }
