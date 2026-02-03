@@ -1,0 +1,71 @@
+using Microsoft.EntityFrameworkCore;
+using ProphetProfiler.Api.Models;
+
+namespace ProphetProfiler.Api.Data;
+
+public class AppDbContext : DbContext
+{
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+    
+    public DbSet<Player> Players { get; set; } = null!;
+    public DbSet<PlayerProfile> PlayerProfiles { get; set; } = null!;
+    public DbSet<BoardGame> BoardGames { get; set; } = null!;
+    public DbSet<GameProfile> GameProfiles { get; set; } = null!;
+    public DbSet<GameSession> GameSessions { get; set; } = null!;
+    public DbSet<Bet> Bets { get; set; } = null!;
+    public DbSet<PlayerStats> PlayerStats { get; set; } = null!;
+    
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        
+        // Player - PlayerProfile (1:1)
+        modelBuilder.Entity<Player>()
+            .HasOne(p => p.Profile)
+            .WithOne(pp => pp.Player)
+            .HasForeignKey<PlayerProfile>(pp => pp.PlayerId);
+        
+        // BoardGame - GameProfile (1:1)
+        modelBuilder.Entity<BoardGame>()
+            .HasOne(bg => bg.Profile)
+            .WithOne(gp => gp.BoardGame)
+            .HasForeignKey<GameProfile>(gp => gp.BoardGameId);
+        
+        // GameSession - Participants (N:N)
+        modelBuilder.Entity<GameSession>()
+            .HasMany(gs => gs.Participants)
+            .WithMany(p => p.Sessions)
+            .UsingEntity(j => j.ToTable("SessionParticipants"));
+        
+        // PlayerStats - Clé composite
+        modelBuilder.Entity<PlayerStats>()
+            .HasKey(ps => new { ps.PlayerId, ps.BoardGameId });
+        
+        // Contraintes sur les axes (1-5)
+        modelBuilder.Entity<PlayerProfile>()
+            .Property(p => p.Aggressivity)
+            .HasConstraintName("CK_PlayerProfile_Aggressivity")
+            .HasAnnotation("Range", new[] { 1, 5 });
+        
+        modelBuilder.Entity<PlayerProfile>()
+            .Property(p => p.Patience)
+            .HasAnnotation("Range", new[] { 1, 5 });
+        
+        modelBuilder.Entity<PlayerProfile>()
+            .Property(p => p.Analysis)
+            .HasAnnotation("Range", new[] { 1, 5 });
+        
+        modelBuilder.Entity<PlayerProfile>()
+            .Property(p => p.Bluff)
+            .HasAnnotation("Range", new[] { 1, 5 });
+        
+        // Index pour performances
+        modelBuilder.Entity<Player>()
+            .HasIndex(p => p.Name)
+            .IsUnique();
+        
+        modelBuilder.Entity<BoardGame>()
+            .HasIndex(bg => bg.Name)
+            .IsUnique();
+    }
+}

@@ -7,7 +7,10 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new() { Title = "Prophet & Profiler API", Version = "v1" });
+});
 
 // Database
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -35,7 +38,12 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Prophet & Profiler API v1"));
+    
+    // Ensure database is created
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.EnsureCreated();
 }
 
 app.UseHttpsRedirection();
