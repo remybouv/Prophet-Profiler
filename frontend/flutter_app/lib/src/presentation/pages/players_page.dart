@@ -1,46 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:prophet_profiler/src/services/api_service.dart';
-import 'package:prophet_profiler/src/data/models/player_model.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:prophet_profiler/src/presentation/blocs/players_bloc.dart';
+import 'package:prophet_profiler/src/presentation/pages/player_form_page.dart';
 import 'dart:developer' as developer;
 
-class PlayersPage extends StatefulWidget {
+class PlayersPage extends StatelessWidget {
   const PlayersPage({super.key});
 
   @override
-  State<PlayersPage> createState() => _PlayersPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (context) => PlayersBloc()..add(const LoadPlayers()),
+      child: const _PlayersView(),
+    );
+  }
 }
 
-class _PlayersPageState extends State<PlayersPage> {
-  final ApiService _apiService = ApiService();
-  List<Player> _players = [];
-  bool _isLoading = true;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPlayers();
-  }
-
-  Future<void> _loadPlayers() async {
-    developer.log('🔄 Chargement des joueurs...', name: 'PlayersPage');
-    setState(() => _isLoading = true);
-    try {
-      final players = await _apiService.getPlayers();
-      developer.log('✅ ${players.length} joueurs chargés', name: 'PlayersPage');
-      setState(() {
-        _players = players;
-        _isLoading = false;
-        _error = null;
-      });
-    } catch (e) {
-      developer.log('❌ Erreur chargement joueurs: $e', name: 'PlayersPage');
-      setState(() {
-        _error = 'Impossible de charger les joueurs. Vérifiez la connexion API.';
-        _isLoading = false;
-      });
-    }
-  }
+class _PlayersView extends StatelessWidget {
+  const _PlayersView();
 
   @override
   Widget build(BuildContext context) {
@@ -50,67 +27,88 @@ class _PlayersPageState extends State<PlayersPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _loadPlayers,
+            onPressed: () {
+              developer.log('🔄 Refresh demandé', name: 'PlayersPage');
+              context.read<PlayersBloc>().add(const LoadPlayers());
+            },
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(_error!, style: const TextStyle(color: Colors.red)),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadPlayers,
-                        child: const Text('Réessayer'),
-                      ),
-                    ],
+      body: BlocBuilder<PlayersBloc, PlayersState>(
+        builder: (context, state) {
+          if (state is PlayersLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          
+          if (state is PlayersError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(state.message, style: const TextStyle(color: Colors.red)),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      context.read<PlayersBloc>().add(const LoadPlayers());
+                    },
+                    child: const Text('Réessayer'),
                   ),
-                )
-              : _players.isEmpty
-                  ? const Center(child: Text('Aucun joueur encore'))
-                  : ListView.builder(
-                      itemCount: _players.length,
-                      itemBuilder: (context, index) {
-                        final player = _players[index];
-                        return ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: Colors.amber,
-                            child: Text(player.name.isNotEmpty ? player.name[0].toUpperCase() : '?'),
-                          ),
-                          title: Text(player.name),
-                          subtitle: Text(
-                            'A:${player.profile.aggressivity} P:${player.profile.patience} '
-                            'A:${player.profile.analysis} B:${player.profile.bluff}',
-                          ),
-                        );
-                      },
-                    ),
+                ],
+              ),
+            );
+          }
+          
+          if (state is PlayersLoaded) {
+            if (state.players.isEmpty) {
+              return const Center(child: Text('Aucun joueur encore'));
+            }
+            
+            return ListView.builder(
+              itemCount: state.players.length,
+              itemBuilder: (context, index) {
+                final player = state.players[index];
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.amber,
+                    backgroundImage: player.photoUrl != null 
+                        ? NetworkImage(player.photoUrl!) 
+                        : null,
+                    child: player.photoUrl == null 
+                        ? Text(
+                            player.name.isNotEmpty 
+                                ? player.name[0].toUpperCase() 
+                                : '?',
+                          )
+                        : null,
+                  ),
+                  title: Text(player.name),
+                  subtitle: Text(
+                    'A:${player.profile.aggressivity} P:${player.profile.patience} '
+                    'A:${player.profile.analysis} B:${player.profile.bluff}',
+                  ),
+                );
+              },
+            );
+          }
+          
+          return const Center(child: Text('Chargement...'));
+        },
+      ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
+        onPressed: () async {
           developer.log('➕ Ajouter joueur cliqué', name: 'PlayersPage');
-          _showAddPlayerDialog();
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const PlayerFormPage()),
+          );
+          
+          // Si création réussie, recharger la liste
+          if (result == true && context.mounted) {
+            developer.log('✅ Retour avec succès, reload liste', name: 'PlayersPage');
+            context.read<PlayersBloc>().add(const LoadPlayers());
+          }
         },
         child: const Icon(Icons.person_add),
-      ),
-    );
-  }
-
-  void _showAddPlayerDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Nouveau joueur'),
-        content: const Text('Fonctionnalité à implémenter'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
       ),
     );
   }
