@@ -41,6 +41,26 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<PlayerStats>()
             .HasKey(ps => new { ps.PlayerId, ps.BoardGameId });
         
+        // Bet - Relations explicites vers Player (Bettor et PredictedWinner)
+        modelBuilder.Entity<Bet>()
+            .HasOne(b => b.Bettor)
+            .WithMany()
+            .HasForeignKey(b => b.BettorId)
+            .OnDelete(DeleteBehavior.Restrict);
+        
+        modelBuilder.Entity<Bet>()
+            .HasOne(b => b.PredictedWinner)
+            .WithMany()
+            .HasForeignKey(b => b.PredictedWinnerId)
+            .OnDelete(DeleteBehavior.Restrict);
+        
+        // GameSession - Relation Winner vers Player
+        modelBuilder.Entity<GameSession>()
+            .HasOne(gs => gs.Winner)
+            .WithMany()
+            .HasForeignKey(gs => gs.WinnerId)
+            .OnDelete(DeleteBehavior.SetNull);
+        
         // Contraintes sur les axes (1-5)
         modelBuilder.Entity<PlayerProfile>()
             .HasCheckConstraint("CK_PlayerProfile_Aggressivity", "[Aggressivity] BETWEEN 1 AND 5")
