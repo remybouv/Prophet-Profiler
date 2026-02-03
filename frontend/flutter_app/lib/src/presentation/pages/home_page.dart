@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'dart:developer' as developer;
+import 'players_page.dart';
+import 'games_page.dart';
+import 'rankings_page.dart';
+import 'new_session_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -24,6 +29,31 @@ class HomePage extends StatelessWidget {
         ),
       ),
       bottomNavigationBar: NavigationBar(
+        onDestinationSelected: (index) {
+          developer.log('📱 Navigation vers index: $index', name: 'HomePage');
+          switch (index) {
+            case 0: // Accueil - déjà là
+              break;
+            case 1: // Joueurs
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const PlayersPage()),
+              );
+              break;
+            case 2: // Jeux
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const GamesPage()),
+              );
+              break;
+            case 3: // Classements
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const RankingsPage()),
+              );
+              break;
+          }
+        },
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home), label: 'Accueil'),
           NavigationDestination(icon: Icon(Icons.people), label: 'Joueurs'),
@@ -58,7 +88,13 @@ class HomePage extends StatelessWidget {
       children: [
         Expanded(
           child: ElevatedButton.icon(
-            onPressed: () {},
+            onPressed: () {
+              developer.log('🎮 Bouton Nouvelle Session cliqué', name: 'HomePage');
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const NewSessionPage()),
+              );
+            },
             icon: const Icon(Icons.add),
             label: const Text('Nouvelle Session'),
           ),
@@ -66,7 +102,13 @@ class HomePage extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: OutlinedButton.icon(
-            onPressed: () {},
+            onPressed: () {
+              developer.log('👤 Bouton Ajouter Joueur cliqué', name: 'HomePage');
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const PlayersPage()),
+              );
+            },
             icon: const Icon(Icons.person_add),
             label: const Text('Ajouter Joueur'),
           ),
