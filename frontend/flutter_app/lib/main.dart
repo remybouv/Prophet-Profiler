@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'core/theme/widgets_theme.dart';
-import 'presentation/pages/home_page.dart';
+import 'src/core/theme/widgets_theme.dart';
+import 'src/presentation/pages/home_page.dart';
 
 void main() {
   runApp(const ProphetProfilerApp());
