@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 /// Design System - Royal Indigo & Gold Theme
@@ -297,7 +298,7 @@ ThemeData createProphetTheme() {
       background: AppColors.royalIndigo,
     ),
     scaffoldBackgroundColor: AppColors.royalIndigo,
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: AppColors.royalIndigoLight,
       elevation: 4,
       shape: RoundedRectangleBorder(
