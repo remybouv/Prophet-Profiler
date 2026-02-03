@@ -1,8 +1,9 @@
+import 'dart:developer' as developer;
+import 'dart:io';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:prophet_profiler/src/data/models/player_model.dart';
 import 'package:prophet_profiler/src/services/api_service.dart';
-import 'dart:developer' as developer;
 
 // ==================== EVENTS ====================
 
@@ -140,6 +141,19 @@ class PlayersBloc extends Bloc<PlayersEvent, PlayersState> {
     } catch (e) {
       developer.log('❌ [BLOC] Erreur création: $e', name: 'PlayersBloc');
       emit(PlayerCreateError('Erreur lors de la création: $e'));
+    }
+  }
+
+  // Méthode publique pour uploader la photo
+  Future<String> uploadPlayerPhoto(String playerId, File imageFile) async {
+    developer.log('📤 [BLOC] Upload photo pour: $playerId', name: 'PlayersBloc');
+    try {
+      final photoUrl = await _apiService.uploadPlayerPhoto(playerId, imageFile);
+      developer.log('✅ [BLOC] Photo uploadée: $photoUrl', name: 'PlayersBloc');
+      return photoUrl;
+    } catch (e) {
+      developer.log('❌ [BLOC] Erreur upload photo: $e', name: 'PlayersBloc');
+      throw Exception('Erreur upload photo: $e');
     }
   }
 }

@@ -1,7 +1,9 @@
+import 'dart:developer' as developer;
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:prophet_profiler/src/presentation/blocs/players_bloc.dart';
-import 'dart:developer' as developer;
+import 'package:prophet_profiler/src/services/image_picker_service.dart';
 
 class PlayerFormPage extends StatefulWidget {
   const PlayerFormPage({super.key});
@@ -13,6 +15,7 @@ class PlayerFormPage extends StatefulWidget {
 class _PlayerFormPageState extends State<PlayerFormPage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _imagePickerService = ImagePickerService();
   
   // Valeurs par défaut des axes = 3
   int _aggressivity = 3;
@@ -20,8 +23,9 @@ class _PlayerFormPageState extends State<PlayerFormPage> {
   int _analysis = 3;
   int _bluff = 3;
   
-  String? _photoUrl;
+  File? _photoFile;
   bool _isSubmitting = false;
+  bool _isUploadingPhoto = false;
 
   @override
   void dispose() {
@@ -34,25 +38,46 @@ class _PlayerFormPageState extends State<PlayerFormPage> {
     return BlocProvider(
       create: (context) => PlayersBloc(),
       child: BlocConsumer<PlayersBloc, PlayersState>(
-        listener: (context, state) {
+        listener: (context, state) async {
           if (state is PlayerCreated) {
-            developer.log('✅ Joueur créé avec succès', name: 'PlayerFormPage');
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Joueur créé avec succès !'),
-                backgroundColor: Colors.green,
-              ),
-            );
-            Navigator.pop(context, true); // Retour avec succès
+            developer.log('✅ Joueur créé: ${state.player.id}', name: 'PlayerFormPage');
+            
+            // Upload photo si sélectionnée
+            if (_photoFile != null) {
+              setState(() => _isUploadingPhoto = true);
+              try {
+                await context.read<PlayersBloc>().uploadPlayerPhoto(
+                  state.player.id,
+                  _photoFile!,
+                );
+                developer.log('✅ Photo uploadée', name: 'PlayerFormPage');
+              } catch (e) {
+                developer.log('❌ Erreur upload photo: $e', name: 'PlayerFormPage');
+                // On continue même si l'upload échoue
+              }
+              setState(() => _isUploadingPhoto = false);
+            }
+            
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Joueur créé avec succès !'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+              Navigator.pop(context, true);
+            }
           } else if (state is PlayerCreateError) {
             developer.log('❌ Erreur création: ${state.message}', name: 'PlayerFormPage');
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Erreur: ${state.message}'),
-                backgroundColor: Colors.red,
-              ),
-            );
             setState(() => _isSubmitting = false);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Erreur: ${state.message}'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
           }
         },
         builder: (context, state) {
@@ -61,8 +86,8 @@ class _PlayerFormPageState extends State<PlayerFormPage> {
               title: const Text('Nouveau Joueur'),
               actions: [
                 TextButton(
-                  onPressed: _isSubmitting ? null : () => _submit(context),
-                  child: _isSubmitting
+                  onPressed: (_isSubmitting || _isUploadingPhoto) ? null : () => _submit(context),
+                  child: (_isSubmitting || _isUploadingPhoto)
                       ? const SizedBox(
                           width: 20,
                           height: 20,
@@ -128,58 +153,96 @@ class _PlayerFormPageState extends State<PlayerFormPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Photo (optionnel)',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
             Row(
               children: [
-                CircleAvatar(
-                  radius: 40,
-                  backgroundColor: Colors.grey[300],
-                  backgroundImage: _photoUrl != null ? NetworkImage(_photoUrl!) : null,
-                  child: _photoUrl == null
-                      ? const Icon(Icons.person, size: 40, color: Colors.grey)
-                      : null,
+                const Text(
+                  'Photo',
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          // TODO: Implémenter sélection galerie
-                          developer.log('📷 Sélection photo non implémentée', name: 'PlayerFormPage');
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Sélection photo à implémenter')),
-                          );
-                        },
-                        icon: const Icon(Icons.photo_library),
-                        label: const Text('Galerie'),
-                      ),
-                      const SizedBox(height: 8),
-                      OutlinedButton.icon(
-                        onPressed: () {
-                          // TODO: Implémenter caméra
-                          developer.log('📸 Caméra non implémentée', name: 'PlayerFormPage');
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Caméra à implémenter')),
-                          );
-                        },
-                        icon: const Icon(Icons.camera_alt),
-                        label: const Text('Caméra'),
-                      ),
-                    ],
+                const Spacer(),
+                if (_photoFile != null)
+                  TextButton.icon(
+                    onPressed: () => setState(() => _photoFile = null),
+                    icon: const Icon(Icons.delete, size: 18),
+                    label: const Text('Supprimer'),
                   ),
-                ),
               ],
+            ),
+            const SizedBox(height: 16),
+            Center(
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 60,
+                    backgroundColor: Colors.grey[300],
+                    backgroundImage: _photoFile != null 
+                        ? FileImage(_photoFile!) 
+                        : null,
+                    child: _photoFile == null
+                        ? Icon(Icons.person, size: 60, color: Colors.grey[600])
+                        : null,
+                  ),
+                  if (_isUploadingPhoto)
+                    Positioned.fill(
+                      child: CircleAvatar(
+                        radius: 60,
+                        backgroundColor: Colors.black54,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const CircularProgressIndicator(color: Colors.white),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Upload...',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: FloatingActionButton.small(
+                      onPressed: _isUploadingPhoto ? null : _pickImage,
+                      child: const Icon(Icons.camera_alt),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Center(
+              child: TextButton.icon(
+                onPressed: _isUploadingPhoto ? null : _pickImage,
+                icon: const Icon(Icons.add_photo_alternate),
+                label: Text(_photoFile == null ? 'Ajouter une photo' : 'Changer la photo'),
+              ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final file = await _imagePickerService.showPickerDialog(context);
+      if (file != null) {
+        setState(() => _photoFile = file);
+        developer.log('📷 Photo sélectionnée: ${file.path}', name: 'PlayerFormPage');
+      }
+    } catch (e) {
+      developer.log('❌ Erreur sélection photo: $e', name: 'PlayerFormPage');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e')),
+        );
+      }
+    }
   }
 
   Widget _buildProfileSection() {
@@ -258,15 +321,19 @@ class _PlayerFormPageState extends State<PlayerFormPage> {
 
   Widget _buildSubmitButton(BuildContext context) {
     return ElevatedButton.icon(
-      onPressed: _isSubmitting ? null : () => _submit(context),
-      icon: _isSubmitting
+      onPressed: (_isSubmitting || _isUploadingPhoto) ? null : () => _submit(context),
+      icon: (_isSubmitting || _isUploadingPhoto)
           ? const SizedBox(
               width: 20,
               height: 20,
               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
             )
           : const Icon(Icons.save),
-      label: Text(_isSubmitting ? 'Création...' : 'Créer le joueur'),
+      label: Text(_isSubmitting 
+          ? 'Création...' 
+          : _isUploadingPhoto 
+              ? 'Upload photo...' 
+              : 'Créer le joueur'),
       style: ElevatedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -278,11 +345,11 @@ class _PlayerFormPageState extends State<PlayerFormPage> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isSubmitting = true);
       
-      developer.log('📝 Soumission formulaire: ${_nameController.text.trim()}', name: 'PlayerFormPage');
+      developer.log('📝 Création joueur: ${_nameController.text.trim()}', name: 'PlayerFormPage');
       
       context.read<PlayersBloc>().add(CreatePlayer(
         name: _nameController.text.trim(),
-        photoUrl: _photoUrl,
+        photoUrl: null, // Sera mis à jour après upload
         aggressivity: _aggressivity,
         patience: _patience,
         analysis: _analysis,
