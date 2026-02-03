@@ -43,21 +43,10 @@ public class AppDbContext : DbContext
         
         // Contraintes sur les axes (1-5)
         modelBuilder.Entity<PlayerProfile>()
-            .Property(p => p.Aggressivity)
-            .HasConstraintName("CK_PlayerProfile_Aggressivity")
-            .HasAnnotation("Range", new[] { 1, 5 });
-        
-        modelBuilder.Entity<PlayerProfile>()
-            .Property(p => p.Patience)
-            .HasAnnotation("Range", new[] { 1, 5 });
-        
-        modelBuilder.Entity<PlayerProfile>()
-            .Property(p => p.Analysis)
-            .HasAnnotation("Range", new[] { 1, 5 });
-        
-        modelBuilder.Entity<PlayerProfile>()
-            .Property(p => p.Bluff)
-            .HasAnnotation("Range", new[] { 1, 5 });
+            .HasCheckConstraint("CK_PlayerProfile_Aggressivity", "[Aggressivity] BETWEEN 1 AND 5")
+            .HasCheckConstraint("CK_PlayerProfile_Patience", "[Patience] BETWEEN 1 AND 5")
+            .HasCheckConstraint("CK_PlayerProfile_Analysis", "[Analysis] BETWEEN 1 AND 5")
+            .HasCheckConstraint("CK_PlayerProfile_Bluff", "[Bluff] BETWEEN 1 AND 5");
         
         // Index pour performances
         modelBuilder.Entity<Player>()
