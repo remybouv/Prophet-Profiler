@@ -25,6 +25,7 @@ public class Player
 
 public class PlayerProfile
 {
+    [Key]
     public Guid PlayerId { get; set; }
     public Player Player { get; set; } = null!;
     

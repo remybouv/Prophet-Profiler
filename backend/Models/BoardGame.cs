@@ -30,6 +30,7 @@ public class BoardGame
 
 public class GameProfile
 {
+    [Key]
     public Guid BoardGameId { get; set; }
     public BoardGame BoardGame { get; set; } = null!;
     
