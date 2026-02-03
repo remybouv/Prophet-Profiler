@@ -431,6 +431,7 @@ $RECYCLE.BIN/
 *.db3
 *.sqlite
 *.sqlite3
+*.db*
 
 # Flutter specific
 .dart_tool
