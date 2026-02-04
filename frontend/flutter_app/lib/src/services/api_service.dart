@@ -1,4 +1,5 @@
 import 'dart:developer' as developer;
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:prophet_profiler/src/core/config/app_config.dart';
 import 'package:prophet_profiler/src/data/models/player_model.dart';
@@ -91,5 +92,35 @@ class ApiService {
   Future<dynamic> getOracles() async {
     final response = await _dio.get('/rankings/oracles');
     return response.data;
+  }
+
+  // Upload Photo
+  Future<String> uploadPlayerPhoto(String playerId, File imageFile) async {
+    try {
+      developer.log('📤 Upload photo pour joueur: $playerId', name: 'ApiService');
+      
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(
+          imageFile.path,
+          filename: 'player_$playerId.jpg',
+        ),
+      });
+
+      final response = await _dio.post(
+        '/players/$playerId/photo',
+        data: formData,
+        options: Options(
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        ),
+      );
+
+      developer.log('✅ Photo uploadée: ${response.data}', name: 'ApiService');
+      return response.data['photoUrl'] as String;
+    } catch (e) {
+      developer.log('❌ Erreur upload photo: $e', name: 'ApiService');
+      throw Exception('Erreur lors de l\'upload de la photo: $e');
+    }
   }
 }
