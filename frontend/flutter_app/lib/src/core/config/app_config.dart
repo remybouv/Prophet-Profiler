@@ -1,17 +1,18 @@
 // Configuration de l'application
-// Pour tester sur mobile physique, remplacez par l'IP de votre machine
-// Exemple: const String apiBaseUrl = 'http://192.168.1.100:5000/api';
+// Le backend tourne sur https://localhost:49704 ou http://localhost:49705
 
 class AppConfig {
   // URL de l'API - Changez cette valeur selon votre environnement
   static const String apiBaseUrl = String.fromEnvironment(
     'API_URL',
-    defaultValue: 'http://10.0.2.2:5000/api', // Android emulator localhost
+    defaultValue: 'http://localhost:49705/api', // HTTP (pas de problème de certificat)
   );
   
-  // Pour iOS simulator: 'http://localhost:5000/api'
-  // Pour Android emulator: 'http://10.0.2.2:5000/api'
-  // Pour appareil physique: remplacez par l'IP locale de votre PC
+  // Configurations selon la plateforme:
+  // - Local web/desktop: 'http://localhost:49705/api'
+  // - Android emulator: 'http://10.0.2.2:49705/api'  
+  // - iOS simulator: 'http://localhost:49705/api'
+  // - Appareil physique: 'http://192.168.1.X:49705/api' (IP de votre PC)
   
   static const bool enableLogs = true;
 }

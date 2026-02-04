@@ -1,23 +1,29 @@
 import 'dart:developer' as developer;
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:prophet_profiler/src/core/config/app_config.dart';
 import 'package:prophet_profiler/src/data/models/player_model.dart';
 
 class ApiService {
   late final Dio _dio;
-  static const String baseUrl = 'https://localhost:49704/api';
 
   ApiService() {
-    developer.log('🔌 ApiService initialisé avec URL: $baseUrl', name: 'ApiService');
+    developer.log('🔌 ApiService initialisé avec URL: ${AppConfig.apiBaseUrl}', name: 'ApiService');
     _dio = Dio(BaseOptions(
-      baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 5),
-      receiveTimeout: const Duration(seconds: 5),
+      baseUrl: AppConfig.apiBaseUrl,
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 10),
       headers: {
         'Content-Type': 'application/json',
       },
     ));
+    
+    // Allow self-signed certificates in development
+    (_dio.httpClientAdapter as IOHttpClientAdapter).onHttpClientCreate = (client) {
+      client.badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+      return client;
+    };
     
     // Intercepteur pour logger les requêtes/réponses
     _dio.interceptors.add(InterceptorsWrapper(
