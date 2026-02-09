@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:prophet_profiler/src/core/config/app_config.dart';
 import 'package:prophet_profiler/src/data/models/player_model.dart';
+import 'package:prophet_profiler/src/data/models/bet_model.dart';
 
 class ApiService {
   late final Dio _dio;
@@ -87,6 +88,47 @@ class ApiService {
       'predictedWinnerId': predictedWinnerId,
     });
     return response.data;
+  }
+
+  // Bets
+  Future<BetsSummary> getBetsSummary(String sessionId) async {
+    try {
+      developer.log('📊 Chargement du résumé des paris pour session: $sessionId', name: 'ApiService');
+      final response = await _dio.get('/api/sessions/$sessionId/bets/summary');
+      return BetsSummary.fromJson(response.data);
+    } catch (e) {
+      developer.log('❌ Erreur chargement résumé paris: $e', name: 'ApiService');
+      throw Exception('Erreur lors du chargement des paris: $e');
+    }
+  }
+
+  Future<Bet> placeBet(String sessionId, String bettorId, String predictedWinnerId) async {
+    try {
+      developer.log('🎲 Placement du pari - Session: $sessionId, Parieur: $bettorId, Choix: $predictedWinnerId', name: 'ApiService');
+      final request = PlaceBetRequest(
+        bettorId: bettorId,
+        predictedWinnerId: predictedWinnerId,
+      );
+      final response = await _dio.post(
+        '/api/sessions/$sessionId/bets',
+        data: request.toJson(),
+      );
+      return Bet.fromJson(response.data);
+    } catch (e) {
+      developer.log('❌ Erreur placement pari: $e', name: 'ApiService');
+      throw Exception('Erreur lors du placement du pari: $e');
+    }
+  }
+
+  Future<BetHistory> getPlayerBetHistory(String playerId) async {
+    try {
+      developer.log('📜 Chargement de l\'historique des paris pour joueur: $playerId', name: 'ApiService');
+      final response = await _dio.get('/api/players/$playerId/bets/history');
+      return BetHistory.fromJson(response.data);
+    } catch (e) {
+      developer.log('❌ Erreur chargement historique paris: $e', name: 'ApiService');
+      throw Exception('Erreur lors du chargement de l\'historique: $e');
+    }
   }
 
   // Rankings

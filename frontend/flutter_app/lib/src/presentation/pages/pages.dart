@@ -5,3 +5,4 @@ export 'player_form_page.dart';
 export 'games_page.dart';
 export 'rankings_page.dart';
 export 'new_session_page.dart';
+export 'session_page.dart';
