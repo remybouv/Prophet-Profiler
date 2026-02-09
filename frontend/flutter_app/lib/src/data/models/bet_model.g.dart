@@ -16,6 +16,7 @@ Bet _$BetFromJson(Map<String, dynamic> json) => Bet(
       predictedWinnerName: json['predictedWinnerName'] as String,
       predictedWinnerPhotoUrl: json['predictedWinnerPhotoUrl'] as String?,
       placedAt: DateTime.parse(json['placedAt'] as String),
+      result: json['result'] as String?,
     );
 
 Map<String, dynamic> _$BetToJson(Bet instance) => <String, dynamic>{
@@ -28,6 +29,7 @@ Map<String, dynamic> _$BetToJson(Bet instance) => <String, dynamic>{
       'predictedWinnerName': instance.predictedWinnerName,
       'predictedWinnerPhotoUrl': instance.predictedWinnerPhotoUrl,
       'placedAt': instance.placedAt.toIso8601String(),
+      'result': instance.result,
     };
 
 BetsSummary _$BetsSummaryFromJson(Map<String, dynamic> json) => BetsSummary(

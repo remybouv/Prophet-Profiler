@@ -45,6 +45,7 @@ class Bet extends Equatable {
   final String predictedWinnerName;
   final String? predictedWinnerPhotoUrl;
   final DateTime placedAt;
+  final String? result;
 
   const Bet({
     required this.id,
@@ -56,7 +57,11 @@ class Bet extends Equatable {
     required this.predictedWinnerName,
     this.predictedWinnerPhotoUrl,
     required this.placedAt,
+    this.result,
   });
+
+  /// Vérifie si le pari est correct (le résultat correspond à la prédiction)
+  bool get isCorrect => result != null && result == predictedWinnerId;
 
   factory Bet.fromJson(Map<String, dynamic> json) => _$BetFromJson(json);
   Map<String, dynamic> toJson() => _$BetToJson(this);
@@ -70,6 +75,7 @@ class Bet extends Equatable {
         predictedWinnerId,
         predictedWinnerName,
         placedAt,
+        result,
       ];
 }
 
