@@ -82,6 +82,45 @@ class ApiService {
     return response.data;
   }
 
+  Future<dynamic> getSession(String sessionId) async {
+    try {
+      developer.log('📋 Chargement de la session: $sessionId', name: 'ApiService');
+      final response = await _dio.get('/api/sessions/$sessionId');
+      return response.data;
+    } catch (e) {
+      developer.log('❌ Erreur chargement session: $e', name: 'ApiService');
+      throw Exception('Erreur lors du chargement de la session: $e');
+    }
+  }
+
+  Future<dynamic> transitionSession(String sessionId, String newStatus) async {
+    try {
+      developer.log('🔄 Transition de la session $sessionId vers $newStatus', name: 'ApiService');
+      final response = await _dio.post(
+        '/api/sessions/$sessionId/transition',
+        data: {'status': newStatus},
+      );
+      return response.data;
+    } catch (e) {
+      developer.log('❌ Erreur transition session: $e', name: 'ApiService');
+      throw Exception('Erreur lors de la transition: $e');
+    }
+  }
+
+  Future<dynamic> completeSession(String sessionId, String winnerId) async {
+    try {
+      developer.log('🏆 Completion de la session $sessionId, gagnant: $winnerId', name: 'ApiService');
+      final response = await _dio.post(
+        '/api/sessions/$sessionId/complete',
+        data: {'winnerId': winnerId},
+      );
+      return response.data;
+    } catch (e) {
+      developer.log('❌ Erreur completion session: $e', name: 'ApiService');
+      throw Exception('Erreur lors de la completion: $e');
+    }
+  }
+
   // Bets
   Future<BetsSummary> getBetsSummary(String sessionId) async {
     try {
