@@ -5,7 +5,7 @@ import 'package:prophet_profiler/src/core/theme/widgets_theme.dart';
 import 'package:prophet_profiler/src/data/models/bet_model.dart';
 import 'package:prophet_profiler/src/data/models/player_model.dart';
 import 'package:prophet_profiler/src/services/api_service.dart';
-import 'package:prophet_profiler/src/widgets/custom/bet_button.dart';
+import 'package:prophet_profiler/src/presentation/widgets/custom/bet_button.dart';
 import 'package:prophet_profiler/src/widgets/custom/bet_selection_dialog.dart';
 import 'package:prophet_profiler/src/widgets/custom/bet_results_dialog.dart';
 import 'package:prophet_profiler/src/widgets/custom/player_card.dart';
@@ -165,8 +165,14 @@ class _SessionPageState extends State<SessionPage> {
   }
 
   void _showBetSelection() {
-    if (_currentPlayer == null || _participants.length < 2) return;
+    developer.log('🔥 Bouton "Qui sera le champion" cliqué !', name: 'SessionPage');
+    
+    if (_currentPlayer == null || _participants.length < 2) {
+      developer.log('❌ Conditions non remplies: currentPlayer=$_currentPlayer, participants=${_participants.length}', name: 'SessionPage');
+      return;
+    }
 
+    developer.log('✅ Affichage du dialog de sélection', name: 'SessionPage');
     BetSelectionDialog.show(
       context: context,
       participants: _participants,
