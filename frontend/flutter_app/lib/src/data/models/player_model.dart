@@ -20,7 +20,16 @@ class Player extends Equatable {
   factory Player.fromJson(Map<String, dynamic> json) => 
       _$PlayerFromJson(json);
   
-  Map<String, dynamic> toJson() => _$PlayerToJson(this);
+  /// Sérialisation pour l'API (format plat, compatible avec le backend)
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'id': id,
+    'name': name,
+    'photoUrl': photoUrl,
+    'aggressivity': profile.aggressivity,
+    'patience': profile.patience,
+    'analysis': profile.analysis,
+    'bluff': profile.bluff,
+  };
 
   @override
   List<Object?> get props => [id, name, photoUrl, profile];
