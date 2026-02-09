@@ -22,9 +22,10 @@ public class AppDbContext : DbContext
         // Player - PlayerProfile (1:1)
         modelBuilder.Entity<Player>()
             .HasOne(p => p.Profile)
-            .WithOne(pp => pp.Player)
-            .HasForeignKey<PlayerProfile>(pp => pp.PlayerId);
-        
+            .WithOne()
+            .HasForeignKey<PlayerProfile>(pp => pp.PlayerId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         // BoardGame - GameProfile (1:1)
         modelBuilder.Entity<BoardGame>()
             .HasOne(bg => bg.Profile)
