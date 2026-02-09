@@ -52,8 +52,8 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<AppDbContext>();
-        context.Database.Migrate(); // Applique les migrations
-        // ou context.Database.EnsureCreated(); si vous n'utilisez pas les migrations
+        //context.Database.Migrate(); // Applique les migrations
+        context.Database.EnsureCreated();
     }
     catch (Exception ex)
     {
