@@ -27,6 +27,7 @@ public class PlayerProfile
 {
     [Key]
     public Guid PlayerId { get; set; }
+    public Player Player { get; set; } = null!;
     
     // 4 axes de notation (1-5)
     public int Aggressivity { get; set; } = 3;  // 1-5
