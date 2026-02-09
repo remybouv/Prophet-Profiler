@@ -26,3 +26,8 @@ public enum MatchQuality
     Great,      // 75-89
     Perfect     // 90-100
 }
+
+public enum BetType
+{
+    Winner = 1
+}

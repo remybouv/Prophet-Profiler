@@ -41,32 +41,33 @@ public class BetManagerTests
     }
 
     [Fact]
-    public async Task ValidateBetAsync_WithSelfBet_ShouldReturnTrue()
+    public async Task ValidateBetAsync_WithSelfBet_ShouldReturnFalse()
     {
         // Arrange
         await using var context = TestDbContextFactory.Create();
         var betManager = new BetManager(context);
         
         var alice = PlayerBuilder.AggressivePlayer().WithName("Alice").Build();
+        var bob = PlayerBuilder.PatientPlayer().WithName("Bob").Build();
         var game = BoardGameBuilder.Catan().Build();
         
-        context.Players.Add(alice);
+        context.Players.AddRange(alice, bob);
         context.BoardGames.Add(game);
         
         var session = new GameSession
         {
             BoardGameId = game.Id,
             Status = SessionStatus.Betting,
-            Participants = new List<Player> { alice }
+            Participants = new List<Player> { alice, bob }
         };
         context.GameSessions.Add(session);
         await context.SaveChangesAsync();
 
-        // Act - Alice parie sur elle-même (auto-pari)
+        // Act - Alice parie sur elle-même (auto-pari interdit selon specs MVP)
         var result = await betManager.ValidateBetAsync(session.Id, alice.Id, alice.Id);
 
         // Assert
-        Assert.True(result);
+        Assert.False(result);
     }
 
     #endregion
@@ -316,7 +317,7 @@ public class BetManagerTests
     }
 
     [Fact]
-    public async Task ResolveBetsAsync_CorrectSelfBet_ShouldAward15Points()
+    public async Task ResolveBetsAsync_WithMinimumTwoPlayers_AllowsBetting()
     {
         // Arrange
         await using var context = TestDbContextFactory.Create();
@@ -338,11 +339,13 @@ public class BetManagerTests
         };
         context.GameSessions.Add(session);
         
+        // Alice parie sur Bob (pas d'auto-pari)
         var bet = new Bet
         {
             GameSessionId = session.Id,
             BettorId = alice.Id,
-            PredictedWinnerId = alice.Id, // Auto-pari gagnant
+            PredictedWinnerId = bob.Id,
+            Type = BetType.Winner,
             PlacedAt = DateTime.UtcNow
         };
         context.Bets.Add(bet);
@@ -351,56 +354,14 @@ public class BetManagerTests
         // Act
         var resolvedBets = await betManager.ResolveBetsAsync(session.Id, alice.Id);
 
-        // Assert
-        var resolvedBet = resolvedBets.First();
-        Assert.True(resolvedBet.IsCorrect);
-        Assert.Equal(15, resolvedBet.PointsEarned); // 10 base + 5 bonus
-    }
-
-    [Fact]
-    public async Task ResolveBetsAsync_IncorrectSelfBet_ShouldPenalize2Points()
-    {
-        // Arrange
-        await using var context = TestDbContextFactory.Create();
-        var betManager = new BetManager(context);
-        
-        var alice = PlayerBuilder.AggressivePlayer().WithName("Alice").Build();
-        var bob = PlayerBuilder.PatientPlayer().WithName("Bob").Build();
-        var game = BoardGameBuilder.Catan().Build();
-        
-        context.Players.AddRange(alice, bob);
-        context.BoardGames.Add(game);
-        
-        var session = new GameSession
-        {
-            BoardGameId = game.Id,
-            Status = SessionStatus.Betting,
-            Participants = new List<Player> { alice, bob },
-            WinnerId = bob.Id // Bob gagne, pas Alice
-        };
-        context.GameSessions.Add(session);
-        
-        var bet = new Bet
-        {
-            GameSessionId = session.Id,
-            BettorId = alice.Id,
-            PredictedWinnerId = alice.Id, // Auto-pari perdant
-            PlacedAt = DateTime.UtcNow
-        };
-        context.Bets.Add(bet);
-        await context.SaveChangesAsync();
-
-        // Act
-        var resolvedBets = await betManager.ResolveBetsAsync(session.Id, bob.Id);
-
-        // Assert
+        // Assert - Mauvaise prédiction = -2 points
         var resolvedBet = resolvedBets.First();
         Assert.False(resolvedBet.IsCorrect);
-        Assert.Equal(-2, resolvedBet.PointsEarned); // Pénalité auto-pari perdant
+        Assert.Equal(-2, resolvedBet.PointsEarned);
     }
 
     [Fact]
-    public async Task ResolveBetsAsync_IncorrectBetOthers_ShouldAward0Points()
+    public async Task ResolveBetsAsync_IncorrectBetOthers_ShouldPenalize2Points()
     {
         // Arrange
         await using var context = TestDbContextFactory.Create();
@@ -427,7 +388,8 @@ public class BetManagerTests
         {
             GameSessionId = session.Id,
             BettorId = bob.Id,
-            PredictedWinnerId = charlie.Id, // Mauvaise prédiction (pas auto-pari)
+            PredictedWinnerId = charlie.Id, // Mauvaise prédiction
+            Type = BetType.Winner,
             PlacedAt = DateTime.UtcNow
         };
         context.Bets.Add(bet);
@@ -436,10 +398,10 @@ public class BetManagerTests
         // Act
         var resolvedBets = await betManager.ResolveBetsAsync(session.Id, alice.Id);
 
-        // Assert
+        // Assert - Selon specs MVP: -2 points pour prédiction incorrecte
         var resolvedBet = resolvedBets.First();
         Assert.False(resolvedBet.IsCorrect);
-        Assert.Equal(0, resolvedBet.PointsEarned); // Pas de pénalité si ce n'est pas auto-pari
+        Assert.Equal(-2, resolvedBet.PointsEarned);
     }
 
     [Fact]
@@ -647,6 +609,116 @@ public class BetManagerTests
 
         // Assert
         Assert.False(result);
+    }
+
+    #endregion
+
+    #region GetBetsSummaryAsync - Tests
+
+    [Fact]
+    public async Task GetBetsSummaryAsync_WithValidSession_ShouldReturnSummary()
+    {
+        // Arrange
+        await using var context = TestDbContextFactory.Create();
+        var betManager = new BetManager(context);
+        
+        var alice = PlayerBuilder.AggressivePlayer().WithName("Alice").Build();
+        var bob = PlayerBuilder.PatientPlayer().WithName("Bob").Build();
+        var charlie = PlayerBuilder.BalancedPlayer().WithName("Charlie").Build();
+        var game = BoardGameBuilder.Catan().Build();
+        
+        context.Players.AddRange(alice, bob, charlie);
+        context.BoardGames.Add(game);
+        
+        var session = new GameSession
+        {
+            BoardGameId = game.Id,
+            Status = SessionStatus.Betting,
+            Participants = new List<Player> { alice, bob, charlie },
+            Bets = new List<Bet>
+            {
+                new Bet { 
+                    BettorId = alice.Id, 
+                    PredictedWinnerId = bob.Id, 
+                    Type = BetType.Winner,
+                    PlacedAt = DateTime.UtcNow 
+                }
+            }
+        };
+        context.GameSessions.Add(session);
+        await context.SaveChangesAsync();
+
+        // Act
+        var summary = await betManager.GetBetsSummaryAsync(session.Id);
+
+        // Assert
+        Assert.Equal(session.Id, summary.SessionId);
+        Assert.Equal(SessionStatus.Betting, summary.SessionStatus);
+        Assert.Equal(3, summary.TotalParticipants);
+        Assert.Equal(1, summary.TotalBetsPlaced);
+        Assert.Single(summary.Bets);
+        Assert.Equal(2, summary.PendingBettors.Count);
+        Assert.Contains(summary.PendingBettors, p => p.Name == "Bob");
+        Assert.Contains(summary.PendingBettors, p => p.Name == "Charlie");
+    }
+
+    [Fact]
+    public async Task GetBetsSummaryAsync_WithResolvedBets_ShouldIncludeResults()
+    {
+        // Arrange
+        await using var context = TestDbContextFactory.Create();
+        var betManager = new BetManager(context);
+        
+        var alice = PlayerBuilder.AggressivePlayer().WithName("Alice").Build();
+        var bob = PlayerBuilder.PatientPlayer().WithName("Bob").Build();
+        var game = BoardGameBuilder.Catan().Build();
+        
+        context.Players.AddRange(alice, bob);
+        context.BoardGames.Add(game);
+        
+        var session = new GameSession
+        {
+            BoardGameId = game.Id,
+            Status = SessionStatus.Completed,
+            Participants = new List<Player> { alice, bob },
+            WinnerId = bob.Id
+        };
+        context.GameSessions.Add(session);
+        
+        var bet = new Bet
+        {
+            GameSessionId = session.Id,
+            BettorId = alice.Id,
+            PredictedWinnerId = bob.Id,
+            Type = BetType.Winner,
+            IsCorrect = true,
+            PointsEarned = 10,
+            PlacedAt = DateTime.UtcNow
+        };
+        context.Bets.Add(bet);
+        await context.SaveChangesAsync();
+
+        // Act
+        var summary = await betManager.GetBetsSummaryAsync(session.Id);
+
+        // Assert
+        Assert.Single(summary.Bets);
+        Assert.Equal("Alice", summary.Bets[0].BettorName);
+        Assert.Equal("Bob", summary.Bets[0].PredictedWinnerName);
+        Assert.True(summary.Bets[0].IsCorrect);
+        Assert.Equal(10, summary.Bets[0].PointsEarned);
+    }
+
+    [Fact]
+    public async Task GetBetsSummaryAsync_WithNonExistentSession_ShouldThrowException()
+    {
+        // Arrange
+        await using var context = TestDbContextFactory.Create();
+        var betManager = new BetManager(context);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(() => 
+            betManager.GetBetsSummaryAsync(Guid.NewGuid()));
     }
 
     #endregion

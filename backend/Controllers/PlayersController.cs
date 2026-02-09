@@ -91,6 +91,76 @@ public class PlayersController : ControllerBase
         await _context.SaveChangesAsync();
         return NoContent();
     }
+    
+    [HttpGet("{id}/bets/history")]
+    public async Task<ActionResult<BetHistoryResponse>> GetBetHistory(
+        Guid id, 
+        [FromQuery] int page = 1, 
+        [FromQuery] int pageSize = 10)
+    {
+        var player = await _context.Players.FindAsync(id);
+        if (player == null) return NotFound("Joueur non trouvé");
+        
+        if (page < 1) page = 1;
+        if (pageSize < 1 || pageSize > 100) pageSize = 10;
+        
+        var query = _context.Bets
+            .Where(b => b.BettorId == id)
+            .Include(b => b.GameSession)
+            .ThenInclude(gs => gs.BoardGame)
+            .Include(b => b.PredictedWinner)
+            .OrderByDescending(b => b.PlacedAt);
+        
+        var totalCount = await query.CountAsync();
+        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+        
+        var bets = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+        
+        var betHistoryItems = bets.Select(b => new BetHistoryItem
+        {
+            BetId = b.Id,
+            SessionId = b.GameSessionId,
+            BoardGameName = b.GameSession.BoardGame.Name,
+            PredictedWinnerId = b.PredictedWinnerId,
+            PredictedWinnerName = b.PredictedWinner.Name,
+            PlacedAt = b.PlacedAt,
+            IsCorrect = b.IsCorrect,
+            PointsEarned = b.PointsEarned
+        }).ToList();
+        
+        return Ok(new BetHistoryResponse
+        {
+            Bets = betHistoryItems,
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize,
+            TotalPages = totalPages
+        });
+    }
+}
+
+public record BetHistoryResponse
+{
+    public List<BetHistoryItem> Bets { get; init; } = new();
+    public int TotalCount { get; init; }
+    public int Page { get; init; }
+    public int PageSize { get; init; }
+    public int TotalPages { get; init; }
+}
+
+public record BetHistoryItem
+{
+    public Guid BetId { get; init; }
+    public Guid SessionId { get; init; }
+    public string BoardGameName { get; init; } = string.Empty;
+    public Guid PredictedWinnerId { get; init; }
+    public string PredictedWinnerName { get; init; } = string.Empty;
+    public DateTime PlacedAt { get; init; }
+    public bool? IsCorrect { get; init; }
+    public int PointsEarned { get; init; }
 }
 
 public record CreatePlayerRequest(

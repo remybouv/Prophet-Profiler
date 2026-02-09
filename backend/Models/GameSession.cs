@@ -46,11 +46,17 @@ public class Bet
     public Guid PredictedWinnerId { get; set; }
     public Player PredictedWinner { get; set; } = null!;
     
+    // Type de pari (Winner uniquement pour MVP)
+    public BetType Type { get; set; } = BetType.Winner;
+    
+    // Indique si c'est un auto-pari (pari sur soi-même) - interdit selon les specs MVP
+    public bool IsAutoBet { get; set; } = false;
+    
     // Résultat
     public bool? IsCorrect { get; set; }
     
     public DateTime PlacedAt { get; set; } = DateTime.UtcNow;
     
-    // Points gagnés (calculé à la résolution)
+    // Points gagnés (calculé à la résolution): +10 correct, -2 incorrect
     public int PointsEarned { get; set; } = 0;
 }

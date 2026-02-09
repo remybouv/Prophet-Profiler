@@ -26,6 +26,9 @@ public class BetManager : IBetManager
         if (!session.Participants.Any(p => p.Id == predictedWinnerId)) return false;
         if (session.Bets.Any(b => b.BettorId == bettorId)) return false; // Déjà parié
         
+        // Auto-pari interdit selon les specs MVP
+        if (bettorId == predictedWinnerId) return false;
+        
         return true;
     }
     
@@ -39,6 +42,8 @@ public class BetManager : IBetManager
             GameSessionId = sessionId,
             BettorId = bettorId,
             PredictedWinnerId = predictedWinnerId,
+            Type = BetType.Winner,
+            IsAutoBet = false, // Auto-pari interdit
             PlacedAt = DateTime.UtcNow
         };
         
@@ -63,16 +68,14 @@ public class BetManager : IBetManager
         {
             bet.IsCorrect = bet.PredictedWinnerId == actualWinnerId;
             
-            // Calcul des points
+            // Calcul des points selon specs MVP: +10 correct, -2 incorrect
             if (bet.IsCorrect == true)
             {
-                bet.PointsEarned = 10; // Base
-                if (bet.BettorId == actualWinnerId)
-                    bet.PointsEarned += 5; // Bonus auto-pari gagnant
+                bet.PointsEarned = 10;
             }
-            else if (bet.BettorId == bet.PredictedWinnerId)
+            else
             {
-                bet.PointsEarned = -2; // Pénalité auto-pari perdant
+                bet.PointsEarned = -2;
             }
         }
         
@@ -99,5 +102,50 @@ public class BetManager : IBetManager
         return session.Participants
             .Where(p => !bettorIds.Contains(p.Id))
             .ToList();
+    }
+    
+    public async Task<BetsSummary> GetBetsSummaryAsync(Guid sessionId)
+    {
+        var session = await _context.GameSessions
+            .Include(gs => gs.Participants)
+            .Include(gs => gs.Bets)
+            .ThenInclude(b => b.Bettor)
+            .Include(gs => gs.Bets)
+            .ThenInclude(b => b.PredictedWinner)
+            .FirstOrDefaultAsync(gs => gs.Id == sessionId);
+        
+        if (session == null)
+            throw new InvalidOperationException("Session introuvable");
+        
+        var bettorIds = session.Bets.Select(b => b.BettorId).ToHashSet();
+        var pendingBettors = session.Participants
+            .Where(p => !bettorIds.Contains(p.Id))
+            .Select(p => new PlayerSummary 
+            { 
+                Id = p.Id, 
+                Name = p.Name, 
+                PhotoUrl = p.PhotoUrl 
+            })
+            .ToList();
+        
+        return new BetsSummary
+        {
+            SessionId = session.Id,
+            SessionStatus = session.Status,
+            TotalParticipants = session.Participants.Count,
+            TotalBetsPlaced = session.Bets.Count,
+            Bets = session.Bets.Select(b => new BetDetail
+            {
+                BetId = b.Id,
+                BettorId = b.BettorId,
+                BettorName = b.Bettor.Name,
+                PredictedWinnerId = b.PredictedWinnerId,
+                PredictedWinnerName = b.PredictedWinner.Name,
+                PlacedAt = b.PlacedAt,
+                IsCorrect = b.IsCorrect,
+                PointsEarned = b.PointsEarned
+            }).ToList(),
+            PendingBettors = pendingBettors
+        };
     }
 }

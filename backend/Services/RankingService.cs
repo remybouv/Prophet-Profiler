@@ -122,10 +122,22 @@ public class RankingService : IRankingService
         foreach (var bet in session.Bets)
         {
             var globalStats = await GetOrCreateStatsAsync(bet.BettorId, null);
-            globalStats.RecordBet(bet.IsCorrect == true, bet.PointsEarned);
+            globalStats.RecordBet(bet.IsCorrect == true);
+            globalStats.OraclePoints += bet.PointsEarned;
             
             var gameStats = await GetOrCreateStatsAsync(bet.BettorId, session.BoardGameId);
-            gameStats.RecordBet(bet.IsCorrect == true, bet.PointsEarned);
+            gameStats.RecordBet(bet.IsCorrect == true);
+            gameStats.OraclePoints += bet.PointsEarned;
+        }
+        
+        // Points Champion pour le gagnant
+        if (session.WinnerId.HasValue)
+        {
+            var winnerGlobalStats = await GetOrCreateStatsAsync(session.WinnerId.Value, null);
+            winnerGlobalStats.ChampionPoints += 10; // Points pour une victoire
+            
+            var winnerGameStats = await GetOrCreateStatsAsync(session.WinnerId.Value, session.BoardGameId);
+            winnerGameStats.ChampionPoints += 10;
         }
         
         await _context.SaveChangesAsync();

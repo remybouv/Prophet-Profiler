@@ -83,14 +83,68 @@ public class SessionsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = session.Id }, session);
     }
     
+    [HttpGet("{id}/bets/summary")]
+    public async Task<ActionResult<BetsSummary>> GetBetsSummary(Guid id)
+    {
+        try
+        {
+            var summary = await _betManager.GetBetsSummaryAsync(id);
+            return Ok(summary);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return NotFound(ex.Message);
+        }
+    }
+    
+    [HttpPost("{id}/transition")]
+    public async Task<ActionResult> TransitionStatus(Guid id, [FromBody] TransitionRequest request)
+    {
+        var session = await _context.GameSessions
+            .Include(s => s.Participants)
+            .FirstOrDefaultAsync(s => s.Id == id);
+        
+        if (session == null) return NotFound("Session non trouvée");
+        
+        // Vérifier les transitions valides
+        var validTransition = (session.Status, request.NewStatus) switch
+        {
+            (SessionStatus.Created, SessionStatus.Betting) => true,
+            (SessionStatus.Betting, SessionStatus.Playing) => true,
+            (SessionStatus.Playing, SessionStatus.Completed) => true,
+            (SessionStatus.Created, SessionStatus.Cancelled) => true,
+            (SessionStatus.Betting, SessionStatus.Cancelled) => true,
+            _ => false
+        };
+        
+        if (!validTransition)
+            return BadRequest($"Transition invalide de {session.Status} vers {request.NewStatus}");
+        
+        // Vérifier minimum 2 joueurs pour Betting
+        if (request.NewStatus == SessionStatus.Betting && session.Participants.Count < 2)
+            return BadRequest("Minimum 2 joueurs requis pour activer les paris");
+        
+        session.Status = request.NewStatus;
+        await _context.SaveChangesAsync();
+        
+        return NoContent();
+    }
+    
     [HttpPost("{id}/start-betting")]
     public async Task<ActionResult> StartBetting(Guid id)
     {
-        var session = await _context.GameSessions.FindAsync(id);
+        var session = await _context.GameSessions
+            .Include(s => s.Participants)
+            .FirstOrDefaultAsync(s => s.Id == id);
+        
         if (session == null) return NotFound();
         
         if (session.Status != SessionStatus.Created)
             return BadRequest("La session doit être en statut Created");
+        
+        // Vérifier minimum 2 joueurs pour Betting
+        if (session.Participants.Count < 2)
+            return BadRequest("Minimum 2 joueurs requis pour activer les paris");
         
         session.Status = SessionStatus.Betting;
         await _context.SaveChangesAsync();
@@ -101,6 +155,10 @@ public class SessionsController : ControllerBase
     [HttpPost("{id}/bets")]
     public async Task<ActionResult<Bet>> PlaceBet(Guid id, [FromBody] PlaceBetRequest request)
     {
+        // Vérifier explicitement l'auto-pari interdit
+        if (request.BettorId == request.PredictedWinnerId)
+            return BadRequest("Auto-pari interdit : vous ne pouvez pas parier sur vous-même");
+        
         try
         {
             var bet = await _betManager.PlaceBetAsync(id, request.BettorId, request.PredictedWinnerId);
@@ -157,5 +215,7 @@ public record CreateSessionRequest(
 );
 
 public record PlaceBetRequest(Guid BettorId, Guid PredictedWinnerId);
+
+public record TransitionRequest(SessionStatus NewStatus);
 
 public record CompleteSessionRequest(Guid WinnerId);

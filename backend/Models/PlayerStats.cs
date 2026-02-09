@@ -30,6 +30,10 @@ public class PlayerStats
         ? (double)BetsCorrect / TotalBetsPlaced * 100 
         : 0;
     
+    // Points accumulés
+    public int ChampionPoints { get; set; } = 0;  // Points gagnés en tant que champion (victoires)
+    public int OraclePoints { get; set; } = 0;    // Points gagnés en tant qu'oracle (prédictions correctes)
+    
     public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
     
     // Méthodes helpers
@@ -40,11 +44,10 @@ public class PlayerStats
         LastUpdated = DateTime.UtcNow;
     }
     
-    public void RecordBet(bool correct, int points = 0)
+    public void RecordBet(bool correct)
     {
         TotalBetsPlaced++;
         if (correct) BetsCorrect++;
-        // Points gérés séparément
         LastUpdated = DateTime.UtcNow;
     }
 }
