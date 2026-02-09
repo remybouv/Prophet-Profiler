@@ -1,9 +1,11 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:prophet_profiler/src/core/theme/widgets_theme.dart';
 import 'package:prophet_profiler/src/data/models/bet_model.dart';
 import 'package:prophet_profiler/src/data/models/player_model.dart';
+import 'package:prophet_profiler/src/presentation/blocs/bets_bloc.dart';
 import 'package:prophet_profiler/src/services/api_service.dart';
 import 'package:prophet_profiler/src/presentation/widgets/custom/bet_button.dart';
 import 'package:prophet_profiler/src/widgets/custom/bet_selection_dialog.dart';
@@ -17,7 +19,7 @@ import 'package:prophet_profiler/src/widgets/custom/player_card.dart';
 /// - Les participants
 /// - Le bouton "Qui sera le champion ?" (visible uniquement en mode Betting)
 /// - Les résultats des paris (après la session)
-class SessionPage extends StatefulWidget {
+class SessionPage extends StatelessWidget {
   final String? sessionId;
 
   const SessionPage({
@@ -26,20 +28,35 @@ class SessionPage extends StatefulWidget {
   });
 
   @override
-  State<SessionPage> createState() => _SessionPageState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => BetsBloc(),
+      child: _SessionPageView(sessionId: sessionId),
+    );
+  }
 }
 
-class _SessionPageState extends State<SessionPage> {
+class _SessionPageView extends StatefulWidget {
+  final String? sessionId;
+
+  const _SessionPageView({this.sessionId});
+
+  @override
+  State<_SessionPageView> createState() => _SessionPageViewState();
+}
+
+class _SessionPageViewState extends State<_SessionPageView> {
   final ApiService _apiService = ApiService();
-  bool _isLoading = true;
+  bool _isLoadingSession = true;
   bool _isPlacingBet = false;
   String? _error;
 
-  // Données de session simulées (à remplacer par l'API réelle)
+  // Données de session chargées depuis l'API
   SessionStatus _sessionStatus = SessionStatus.betting;
   List<Player> _participants = [];
   Player? _currentPlayer;
-  BetsSummary? _betsSummary;
+  String? _sessionName;
+  DateTime? _sessionDate;
 
   @override
   void initState() {
@@ -48,66 +65,122 @@ class _SessionPageState extends State<SessionPage> {
   }
 
   Future<void> _loadSessionData() async {
+    if (widget.sessionId == null) {
+      // Mode sans session - charger uniquement les joueurs disponibles
+      await _loadPlayersOnly();
+      return;
+    }
+
     try {
       setState(() {
-        _isLoading = true;
+        _isLoadingSession = true;
         _error = null;
       });
 
-      // TODO: Remplacer par l'appel API réel
-      // Simuler le chargement des données
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      // Charger les joueurs pour la démo
+      // Charger les joueurs
       final players = await _apiService.getPlayers();
       
+      // Charger les détails de la session
+      await _loadSessionDetails(widget.sessionId!);
+
       setState(() {
         _participants = players;
-        // Pour la démo, prendre le premier joueur comme utilisateur courant
+        // Le premier joueur est considéré comme l'utilisateur courant
         _currentPlayer = players.isNotEmpty ? players.first : null;
-        _betsSummary = _generateMockBetsSummary();
-        _isLoading = false;
+        _isLoadingSession = false;
       });
+
+      // Charger le résumé des paris via le BLoC
+      if (mounted) {
+        final betsBloc = context.read<BetsBloc>();
+        betsBloc.setParticipants(_participants);
+        if (_currentPlayer != null) {
+          betsBloc.setCurrentPlayer(_currentPlayer!);
+        }
+        await betsBloc.loadBetsSummary(widget.sessionId!);
+      }
 
       developer.log('✅ Données de session chargées', name: 'SessionPage');
     } catch (e) {
       setState(() {
         _error = 'Erreur lors du chargement: $e';
-        _isLoading = false;
+        _isLoadingSession = false;
       });
       developer.log('❌ Erreur chargement session: $e', name: 'SessionPage');
     }
   }
 
-  // Données simulées pour la démo
-  BetsSummary _generateMockBetsSummary() {
-    final bets = <Bet>[];
-    
-    // Simuler quelques paris
-    if (_participants.length >= 2) {
-      bets.add(Bet(
-        id: '1',
-        sessionId: widget.sessionId ?? 'session-1',
-        bettorId: _participants[0].id,
-        bettorName: _participants[0].name,
-        bettorPhotoUrl: _participants[0].photoUrl,
-        predictedWinnerId: _participants[1].id,
-        predictedWinnerName: _participants[1].name,
-        predictedWinnerPhotoUrl: _participants[1].photoUrl,
-        placedAt: DateTime.now().subtract(const Duration(minutes: 10)),
-      ));
-    }
+  Future<void> _loadPlayersOnly() async {
+    try {
+      setState(() {
+        _isLoadingSession = true;
+        _error = null;
+      });
 
-    return BetsSummary(
-      sessionId: widget.sessionId ?? 'session-1',
-      sessionStatus: _sessionStatus,
-      totalBets: bets.length,
-      totalParticipants: _participants.length,
-      bets: bets,
-      currentUserBetOn: null,
-      actualWinnerId: null,
-      actualWinnerName: null,
-    );
+      final players = await _apiService.getPlayers();
+
+      setState(() {
+        _participants = players;
+        _currentPlayer = players.isNotEmpty ? players.first : null;
+        _sessionName = 'Nouvelle Session';
+        _sessionDate = DateTime.now();
+        _isLoadingSession = false;
+      });
+
+      // Créer un résumé vide pour le mode sans session
+      if (mounted) {
+        final betsBloc = context.read<BetsBloc>();
+        betsBloc.setParticipants(_participants);
+        if (_currentPlayer != null) {
+          betsBloc.setCurrentPlayer(_currentPlayer!);
+        }
+      }
+
+      developer.log('✅ Joueurs chargés (mode sans session)', name: 'SessionPage');
+    } catch (e) {
+      setState(() {
+        _error = 'Erreur lors du chargement: $e';
+        _isLoadingSession = false;
+      });
+      developer.log('❌ Erreur chargement joueurs: $e', name: 'SessionPage');
+    }
+  }
+
+  Future<void> _loadSessionDetails(String sessionId) async {
+    try {
+      final sessionData = await _apiService.getSession(sessionId);
+      setState(() {
+        _sessionName = sessionData['name'] ?? 'Session #$sessionId';
+        _sessionDate = sessionData['date'] != null 
+            ? DateTime.parse(sessionData['date']) 
+            : DateTime.now();
+        _sessionStatus = _parseSessionStatus(sessionData['status']);
+      });
+    } catch (e) {
+      // Si l'endpoint n'est pas encore disponible, utiliser les valeurs par défaut
+      developer.log('⚠️ Endpoint getSession non disponible, utilisation des valeurs par défaut', name: 'SessionPage');
+      setState(() {
+        _sessionName = 'Session #$sessionId';
+        _sessionDate = DateTime.now();
+        _sessionStatus = SessionStatus.betting;
+      });
+    }
+  }
+
+  SessionStatus _parseSessionStatus(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'planning':
+        return SessionStatus.planning;
+      case 'betting':
+        return SessionStatus.betting;
+      case 'inprogress':
+      case 'in_progress':
+        return SessionStatus.inProgress;
+      case 'completed':
+        return SessionStatus.completed;
+      default:
+        return SessionStatus.betting;
+    }
   }
 
   Future<void> _placeBet(Player selectedPlayer) async {
@@ -118,17 +191,14 @@ class _SessionPageState extends State<SessionPage> {
         _isPlacingBet = true;
       });
 
-      // Appel API pour placer le pari
-      await _apiService.placeBet(
-        widget.sessionId!,
-        _currentPlayer!.id,
-        selectedPlayer.id,
+      final betsBloc = context.read<BetsBloc>();
+      final success = await betsBloc.placeBet(
+        sessionId: widget.sessionId!,
+        bettorId: _currentPlayer!.id,
+        predictedWinnerId: selectedPlayer.id,
       );
 
-      // Recharger les données
-      await _loadSessionData();
-
-      if (mounted) {
+      if (success && mounted) {
         HapticFeedback.mediumImpact();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -140,9 +210,8 @@ class _SessionPageState extends State<SessionPage> {
             ),
           ),
         );
+        developer.log('✅ Pari placé sur ${selectedPlayer.name}', name: 'SessionPage');
       }
-
-      developer.log('✅ Pari placé sur ${selectedPlayer.name}', name: 'SessionPage');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -182,22 +251,14 @@ class _SessionPageState extends State<SessionPage> {
   }
 
   void _showBetResults() {
-    if (_betsSummary == null) return;
+    final betsBloc = context.read<BetsBloc>();
+    if (betsBloc.state.betsSummary == null) return;
 
     BetResultsDialog.show(
       context: context,
-      betsSummary: _betsSummary!,
+      betsSummary: betsBloc.state.betsSummary!,
       currentPlayerId: _currentPlayer?.id ?? '',
     );
-  }
-
-  bool get _canPlaceBets {
-    return _sessionStatus == SessionStatus.betting && _participants.length >= 2;
-  }
-
-  bool get _hasUserBet {
-    if (_currentPlayer == null || _betsSummary == null) return false;
-    return _betsSummary!.hasPlayerBet(_currentPlayer!.id);
   }
 
   @override
@@ -216,7 +277,7 @@ class _SessionPageState extends State<SessionPage> {
             ),
         ],
       ),
-      body: _isLoading
+      body: _isLoadingSession
           ? const Center(
               child: CircularProgressIndicator(color: AppColors.gold),
             )
@@ -257,24 +318,75 @@ class _SessionPageState extends State<SessionPage> {
       onRefresh: _loadSessionData,
       color: AppColors.gold,
       backgroundColor: AppColors.surface,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // Header de session
-          _buildSessionHeader(),
-          const SizedBox(height: 24),
-          // Bouton de pari (si applicable)
-          if (_canPlaceBets || _hasUserBet || _sessionStatus == SessionStatus.betting)
-            _buildBetSection(),
-          if (_canPlaceBets || _hasUserBet) const SizedBox(height: 24),
-          // Participants
-          _buildParticipantsSection(),
-        ],
+      child: Consumer<BetsBloc>(
+        builder: (context, betsBloc, child) {
+          final betsSummary = betsBloc.state.betsSummary;
+          final sessionStatus = betsSummary?.sessionStatus ?? _sessionStatus;
+          final isLoadingBets = betsBloc.state.isLoading;
+
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              // Header de session
+              _buildSessionHeader(betsSummary, sessionStatus),
+              const SizedBox(height: 24),
+              // Indicateur de chargement des paris
+              if (isLoadingBets)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: CircularProgressIndicator(
+                      color: AppColors.gold,
+                      strokeWidth: 2,
+                    ),
+                  ),
+                ),
+              // Message d'erreur des paris
+              if (betsBloc.state.error != null)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.rust.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.rust),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.error, color: AppColors.rust, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          betsBloc.state.error!,
+                          style: TextStyle(color: AppColors.rust, fontSize: 12),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          betsBloc.clearError();
+                          if (widget.sessionId != null) {
+                            betsBloc.loadBetsSummary(widget.sessionId!);
+                          }
+                        },
+                        child: const Text('Réessayer'),
+                      ),
+                    ],
+                  ),
+                ),
+              // Bouton de pari (si applicable)
+              if (_canPlaceBets(sessionStatus) || _hasUserBet(betsBloc) || sessionStatus == SessionStatus.betting)
+                _buildBetSection(betsBloc, sessionStatus),
+              if (_canPlaceBets(sessionStatus) || _hasUserBet(betsBloc)) const SizedBox(height: 24),
+              // Participants
+              _buildParticipantsSection(),
+            ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildSessionHeader() {
+  Widget _buildSessionHeader(BetsSummary? betsSummary, SessionStatus sessionStatus) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -299,34 +411,34 @@ class _SessionPageState extends State<SessionPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: _getStatusColor().withOpacity(0.2),
+                  color: _getStatusColor(sessionStatus).withOpacity(0.2),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: _getStatusColor()),
+                  border: Border.all(color: _getStatusColor(sessionStatus)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      _getStatusIcon(),
+                      _getStatusIcon(sessionStatus),
                       size: 14,
-                      color: _getStatusColor(),
+                      color: _getStatusColor(sessionStatus),
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      _sessionStatus.displayName,
+                      sessionStatus.displayName,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: _getStatusColor(),
+                        color: _getStatusColor(sessionStatus),
                       ),
                     ),
                   ],
                 ),
               ),
               const Spacer(),
-              if (_betsSummary != null)
+              if (betsSummary != null)
                 Text(
-                  '${_betsSummary!.totalBets}/${_betsSummary!.totalParticipants} paris',
+                  '${betsSummary.totalBets}/${betsSummary.totalParticipants} paris',
                   style: TextStyle(
                     fontSize: 13,
                     color: AppColors.onSurfaceVariant,
@@ -335,9 +447,9 @@ class _SessionPageState extends State<SessionPage> {
             ],
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Session #1',
-            style: TextStyle(
+          Text(
+            _sessionName ?? 'Session #${widget.sessionId ?? '1'}',
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: AppColors.gold,
@@ -345,7 +457,7 @@ class _SessionPageState extends State<SessionPage> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Soirée jeux du ${_formatDate(DateTime.now())}',
+            'Soirée jeux du ${_formatDate(_sessionDate ?? DateTime.now())}',
             style: TextStyle(
               fontSize: 14,
               color: AppColors.onSurfaceVariant,
@@ -356,8 +468,10 @@ class _SessionPageState extends State<SessionPage> {
     );
   }
 
-  Widget _buildBetSection() {
+  Widget _buildBetSection(BetsBloc betsBloc, SessionStatus sessionStatus) {
     final hasEnoughPlayers = _participants.length >= 2;
+    final hasUserBet = _hasUserBet(betsBloc);
+    final canPlaceBets = _canPlaceBets(sessionStatus);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -387,9 +501,9 @@ class _SessionPageState extends State<SessionPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Paris ouverts',
-                      style: TextStyle(
+                    Text(
+                      canPlaceBets ? 'Paris ouverts' : 'Paris fermés',
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: AppColors.cream,
@@ -398,7 +512,11 @@ class _SessionPageState extends State<SessionPage> {
                     const SizedBox(height: 2),
                     Text(
                       hasEnoughPlayers
-                          ? 'Placez votre pari sur le futur champion'
+                          ? canPlaceBets
+                              ? 'Placez votre pari sur le futur champion'
+                              : hasUserBet
+                                  ? 'Vous avez déjà parié !'
+                                  : 'Les paris sont fermés pour cette session'
                           : 'Minimum 2 joueurs requis pour parier',
                       style: TextStyle(
                         fontSize: 13,
@@ -412,11 +530,11 @@ class _SessionPageState extends State<SessionPage> {
           ),
           const SizedBox(height: 20),
           BetButton(
-            betsCount: _betsSummary?.totalBets ?? 0,
+            betsCount: betsBloc.state.betsSummary?.totalBets ?? 0,
             totalParticipants: _participants.length,
-            hasUserBet: _hasUserBet,
-            isEnabled: hasEnoughPlayers,
-            onPressed: _hasUserBet ? _showBetResults : _showBetSelection,
+            hasUserBet: hasUserBet,
+            isEnabled: hasEnoughPlayers && canPlaceBets,
+            onPressed: hasUserBet ? _showBetResults : _showBetSelection,
           ),
         ],
       ),
@@ -455,7 +573,6 @@ class _SessionPageState extends State<SessionPage> {
             players: _participants,
             compact: true,
             onPlayerTap: (player) {
-              // TODO: Naviguer vers le profil du joueur
               developer.log('👤 Joueur tapé: ${player.name}', name: 'SessionPage');
             },
           ),
@@ -463,8 +580,16 @@ class _SessionPageState extends State<SessionPage> {
     );
   }
 
-  Color _getStatusColor() {
-    switch (_sessionStatus) {
+  bool _canPlaceBets(SessionStatus sessionStatus) {
+    return sessionStatus == SessionStatus.betting && _participants.length >= 2;
+  }
+
+  bool _hasUserBet(BetsBloc betsBloc) {
+    return betsBloc.state.hasUserBet;
+  }
+
+  Color _getStatusColor(SessionStatus status) {
+    switch (status) {
       case SessionStatus.planning:
         return AppColors.onSurfaceVariant;
       case SessionStatus.betting:
@@ -476,8 +601,8 @@ class _SessionPageState extends State<SessionPage> {
     }
   }
 
-  IconData _getStatusIcon() {
-    switch (_sessionStatus) {
+  IconData _getStatusIcon(SessionStatus status) {
+    switch (status) {
       case SessionStatus.planning:
         return Icons.schedule;
       case SessionStatus.betting:
