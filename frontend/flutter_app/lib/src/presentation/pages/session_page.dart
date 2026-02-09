@@ -1,14 +1,14 @@
 import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../../core/theme/widgets_theme.dart';
-import '../../../data/models/bet_model.dart';
-import '../../../data/models/player_model.dart';
-import '../../../services/api_service.dart';
-import '../../widgets/custom/bet_button.dart';
-import '../../widgets/custom/bet_selection_dialog.dart';
-import '../../widgets/custom/bet_results_dialog.dart';
-import '../../widgets/custom/player_card.dart';
+import 'package:prophet_profiler/src/core/theme/widgets_theme.dart';
+import 'package:prophet_profiler/src/data/models/bet_model.dart';
+import 'package:prophet_profiler/src/data/models/player_model.dart';
+import 'package:prophet_profiler/src/services/api_service.dart';
+import 'package:prophet_profiler/src/widgets/custom/bet_button.dart';
+import 'package:prophet_profiler/src/widgets/custom/bet_selection_dialog.dart';
+import 'package:prophet_profiler/src/widgets/custom/bet_results_dialog.dart';
+import 'package:prophet_profiler/src/widgets/custom/player_card.dart';
 
 /// Page de session de jeu avec système de paris intégré
 /// 
