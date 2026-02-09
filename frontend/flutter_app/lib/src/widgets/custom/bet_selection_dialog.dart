@@ -69,7 +69,7 @@ class _BetSelectionDialogState extends State<BetSelectionDialog> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              // Header
+              // Header avec info du parieur
               Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
@@ -97,10 +97,57 @@ class _BetSelectionDialogState extends State<BetSelectionDialog> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Sélectionnez un joueur pour placer votre pari',
+                      'Sélectionnez le joueur sur qui vous pariez',
                       style: TextStyle(
                         fontSize: 14,
                         color: AppColors.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // Info: Qui parie ? (utilisateur connecté)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.teal.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppColors.teal.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.account_circle,
+                            size: 18,
+                            color: AppColors.teal,
+                          ),
+                          const SizedBox(width: 10),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Vous pariez en tant que :',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppColors.onSurfaceVariant,
+                                ),
+                              ),
+                              Text(
+                                widget.currentPlayer.name,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.teal,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -108,30 +155,26 @@ class _BetSelectionDialogState extends State<BetSelectionDialog> {
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
-                        vertical: 8,
+                        vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.rust.withOpacity(0.15),
+                        color: AppColors.rust.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: AppColors.rust.withOpacity(0.3),
-                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            Icons.block,
-                            size: 16,
-                            color: AppColors.rust,
+                            Icons.info_outline,
+                            size: 14,
+                            color: AppColors.rust.withOpacity(0.8),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 6),
                           Text(
-                            'Auto-pari interdit',
+                            'Vous ne pouvez pas parier sur vous-même',
                             style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.rust,
-                              fontWeight: FontWeight.w500,
+                              fontSize: 11,
+                              color: AppColors.rust.withOpacity(0.8),
                             ),
                           ),
                         ],
