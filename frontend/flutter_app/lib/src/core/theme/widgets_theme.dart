@@ -39,6 +39,12 @@ class AppColors {
   static const Color surfaceVariant = Color(0xFF323366);
   static const Color onSurface = Color(0xFFFFFFFF);
   static const Color onSurfaceVariant = Color(0xFFB0B0C0);
+  
+  // Additional Colors (used in widgets)
+  static const Color cream = Color(0xFFF5F5DC);
+  static const Color rust = Color(0xFFB7410E);
+  static const Color teal = Color(0xFF008080);
+  static const Color slate = Color(0xFF708090);
 }
 
 /// Theme Extensions for custom widget theming

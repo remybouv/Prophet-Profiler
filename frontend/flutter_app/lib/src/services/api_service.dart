@@ -82,14 +82,6 @@ class ApiService {
     return response.data;
   }
 
-  Future<dynamic> placeBet(String sessionId, String bettorId, String predictedWinnerId) async {
-    final response = await _dio.post('/sessions/$sessionId/bets', data: {
-      'bettorId': bettorId,
-      'predictedWinnerId': predictedWinnerId,
-    });
-    return response.data;
-  }
-
   // Bets
   Future<BetsSummary> getBetsSummary(String sessionId) async {
     try {
