@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProphetProfiler.Api.Data;
 using ProphetProfiler.Api.Models;
+using ProphetProfiler.Api.Models.Dtos;
 using ProphetProfiler.Api.Services;
 
 namespace ProphetProfiler.Api.Controllers;
@@ -13,12 +14,18 @@ public class SessionsController : ControllerBase
     private readonly AppDbContext _context;
     private readonly IBetManager _betManager;
     private readonly IRankingService _rankingService;
+    private readonly ILogger<SessionsController> _logger;
     
-    public SessionsController(AppDbContext context, IBetManager betManager, IRankingService rankingService)
+    public SessionsController(
+        AppDbContext context, 
+        IBetManager betManager, 
+        IRankingService rankingService,
+        ILogger<SessionsController> logger)
     {
         _context = context;
         _betManager = betManager;
         _rankingService = rankingService;
+        _logger = logger;
     }
     
     [HttpGet]
@@ -30,6 +37,67 @@ public class SessionsController : ControllerBase
             .Include(s => s.Winner)
             .OrderByDescending(s => s.Date)
             .ToListAsync();
+        return Ok(sessions);
+    }
+
+    /// <summary>
+    /// Récupère la session active (Betting ou Playing) ou null
+    /// GET /api/sessions/active
+    /// </summary>
+    [HttpGet("active")]
+    public async Task<ActionResult<ActiveSessionInfo>> GetActiveSession()
+    {
+        var activeSession = await _context.GameSessions
+            .Include(s => s.BoardGame)
+            .Include(s => s.Participants)
+            .Include(s => s.Bets)
+            .Where(s => s.Status == SessionStatus.Betting || s.Status == SessionStatus.Playing)
+            .OrderByDescending(s => s.CreatedAt)
+            .Select(s => new ActiveSessionInfo
+            {
+                SessionId = s.Id,
+                BoardGameName = s.BoardGame.Name,
+                Status = s.Status,
+                Date = s.Date,
+                ParticipantCount = s.Participants.Count,
+                BetsPlacedCount = s.Bets.Count,
+                HasActiveSession = true
+            })
+            .FirstOrDefaultAsync();
+
+        if (activeSession == null)
+        {
+            return Ok(new ActiveSessionInfo { HasActiveSession = false });
+        }
+
+        return Ok(activeSession);
+    }
+
+    /// <summary>
+    /// Récupère les sessions récentes pour la homepage
+    /// GET /api/sessions/recent?count=5
+    /// </summary>
+    [HttpGet("recent")]
+    public async Task<ActionResult<List<RecentSessionDto>>> GetRecentSessions([FromQuery] int count = 5)
+    {
+        if (count < 1) count = 5;
+        if (count > 20) count = 20;
+
+        var sessions = await _context.GameSessions
+            .Include(s => s.BoardGame)
+            .Include(s => s.Winner)
+            .OrderByDescending(s => s.Date)
+            .Take(count)
+            .Select(s => new RecentSessionDto
+            {
+                SessionId = s.Id,
+                BoardGameName = s.BoardGame.Name,
+                Date = s.Date,
+                Status = s.Status,
+                WinnerName = s.Winner != null ? s.Winner.Name : null
+            })
+            .ToListAsync();
+
         return Ok(sessions);
     }
     
@@ -153,7 +221,7 @@ public class SessionsController : ControllerBase
     }
     
     [HttpPost("{id}/bets")]
-    public async Task<ActionResult<Bet>> PlaceBet(Guid id, [FromBody] PlaceBetRequest request)
+    public async Task<ActionResult<Bet>> PlaceBet(Guid id, [FromBody] PlaceBetSessionRequest request)
     {
         // Vérifier explicitement l'auto-pari interdit
         if (request.BettorId == request.PredictedWinnerId)
@@ -214,7 +282,7 @@ public record CreateSessionRequest(
     string? Notes
 );
 
-public record PlaceBetRequest(Guid BettorId, Guid PredictedWinnerId);
+public record PlaceBetSessionRequest(Guid BettorId, Guid PredictedWinnerId);
 
 public record TransitionRequest(SessionStatus NewStatus);
 
