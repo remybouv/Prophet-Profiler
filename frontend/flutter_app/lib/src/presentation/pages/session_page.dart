@@ -54,9 +54,11 @@ class _SessionPageViewState extends State<_SessionPageView> {
   // Données de session chargées depuis l'API
   SessionStatus _sessionStatus = SessionStatus.betting;
   List<Player> _participants = [];
-  Player? _currentPlayer;
+  List<Player> _allPlayers = []; // Tous les joueurs disponibles pour sélection
+  Player? _currentPlayer; // Le joueur qui parie (sélectionné par l'utilisateur)
   String? _sessionName;
   DateTime? _sessionDate;
+  bool _showBettorSelector = false; // Afficher le sélecteur de parieur
 
   @override
   void initState() {
@@ -84,9 +86,11 @@ class _SessionPageViewState extends State<_SessionPageView> {
       await _loadSessionDetails(widget.sessionId!);
 
       setState(() {
+        _allPlayers = players;
         _participants = players;
-        // Le premier joueur est considéré comme l'utilisateur courant
-        _currentPlayer = players.isNotEmpty ? players.first : null;
+        // Aucun parieur sélectionné par défaut - l'utilisateur doit choisir
+        _currentPlayer = null;
+        _showBettorSelector = true;
         _isLoadingSession = false;
       });
 
@@ -94,9 +98,7 @@ class _SessionPageViewState extends State<_SessionPageView> {
       if (mounted) {
         final betsBloc = context.read<BetsBloc>();
         betsBloc.setParticipants(_participants);
-        if (_currentPlayer != null) {
-          betsBloc.setCurrentPlayer(_currentPlayer!);
-        }
+        // Ne pas définir le currentPlayer ici - attendre la sélection
         await betsBloc.loadBetsSummary(widget.sessionId!);
       }
 
@@ -120,8 +122,10 @@ class _SessionPageViewState extends State<_SessionPageView> {
       final players = await _apiService.getPlayers();
 
       setState(() {
-        _participants = players;
-        _currentPlayer = players.isNotEmpty ? players.first : null;
+        _allPlayers = players;
+        _participants = players; // Par défaut tous les joueurs sont participants
+        _currentPlayer = null; // Aucun parieur sélectionné par défaut
+        _showBettorSelector = true; // Forcer l'affichage du sélecteur
         _sessionName = 'Nouvelle Session';
         _sessionDate = DateTime.now();
         _isLoadingSession = false;
@@ -131,9 +135,6 @@ class _SessionPageViewState extends State<_SessionPageView> {
       if (mounted) {
         final betsBloc = context.read<BetsBloc>();
         betsBloc.setParticipants(_participants);
-        if (_currentPlayer != null) {
-          betsBloc.setCurrentPlayer(_currentPlayer!);
-        }
       }
 
       developer.log('✅ Joueurs chargés (mode sans session)', name: 'SessionPage');
@@ -261,6 +262,26 @@ class _SessionPageViewState extends State<_SessionPageView> {
     );
   }
 
+  void _selectBettor(Player player) {
+    setState(() {
+      _currentPlayer = player;
+      _showBettorSelector = false;
+    });
+    
+    // Mettre à jour le BLoC avec le parieur sélectionné
+    final betsBloc = context.read<BetsBloc>();
+    betsBloc.setCurrentPlayer(player);
+    
+    HapticFeedback.mediumImpact();
+    developer.log('👤 Parieur sélectionné: ${player.name}', name: 'SessionPage');
+  }
+
+  void _changeBettor() {
+    setState(() {
+      _showBettorSelector = true;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -324,10 +345,22 @@ class _SessionPageViewState extends State<_SessionPageView> {
           final sessionStatus = betsSummary?.sessionStatus ?? _sessionStatus;
           final isLoadingBets = betsBloc.state.isLoading;
 
+          // Si aucun parieur n'est sélectionné, afficher le sélecteur en premier
+          if (_currentPlayer == null && _allPlayers.isNotEmpty) {
+            return ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                _buildSessionHeader(betsSummary, sessionStatus),
+                const SizedBox(height: 24),
+                _buildBettorSelectorSection(),
+              ],
+            );
+          }
+
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              // Header de session
+              // Header de session avec le parieur actuel
               _buildSessionHeader(betsSummary, sessionStatus),
               const SizedBox(height: 24),
               // Indicateur de chargement des paris
@@ -373,6 +406,11 @@ class _SessionPageViewState extends State<_SessionPageView> {
                     ],
                   ),
                 ),
+              // Afficher qui parie actuellement
+              if (_currentPlayer != null)
+                _buildCurrentBettorCard(),
+              if (_currentPlayer != null)
+                const SizedBox(height: 16),
               // Bouton de pari (si applicable)
               if (_canPlaceBets(sessionStatus) || _hasUserBet(betsBloc) || sessionStatus == SessionStatus.betting)
                 _buildBetSection(betsBloc, sessionStatus),
@@ -382,6 +420,140 @@ class _SessionPageViewState extends State<_SessionPageView> {
             ],
           );
         },
+      ),
+    );
+  }
+
+  /// Carte affichant le parieur actuel avec option pour changer
+  Widget _buildCurrentBettorCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.gold.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.gold.withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.person,
+              color: AppColors.gold,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Vous pariez en tant que',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _currentPlayer!.name,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.cream,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          TextButton.icon(
+            onPressed: _changeBettor,
+            icon: const Icon(Icons.swap_horiz, size: 18),
+            label: const Text('Changer'),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.gold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Section de sélection du parieur
+  Widget _buildBettorSelectorSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.gold.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.gold.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.person_outline,
+                  color: AppColors.gold,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Qui êtes-vous ?',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.cream,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Sélectionnez votre profil pour parier',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const Divider(color: AppColors.surfaceVariant),
+          const SizedBox(height: 16),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _allPlayers.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            itemBuilder: (context, index) {
+              final player = _allPlayers[index];
+              return _BettorSelectionCard(
+                player: player,
+                onTap: () => _selectBettor(player),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -620,6 +792,116 @@ class _SessionPageViewState extends State<_SessionPageView> {
       'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'
     ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+}
+
+/// Carte de sélection d'un parieur
+class _BettorSelectionCard extends StatelessWidget {
+  final Player player;
+  final VoidCallback onTap;
+
+  const _BettorSelectionCard({
+    required this.player,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.surfaceVariant),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Avatar
+                _buildAvatar(),
+                const SizedBox(width: 16),
+                // Nom
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        player.name,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.cream,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Appuyez pour sélectionner',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Flèche
+                Icon(
+                  Icons.chevron_right,
+                  color: AppColors.gold,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvatar() {
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: AppColors.surfaceVariant,
+          width: 2,
+        ),
+      ),
+      child: ClipOval(
+        child: player.photoUrl != null
+            ? Image.network(
+                player.photoUrl!,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return _buildPlaceholder();
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return _buildPlaceholder();
+                },
+              )
+            : _buildPlaceholder(),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholder() {
+    return Container(
+      color: AppColors.surfaceVariant,
+      child: Center(
+        child: Icon(
+          Icons.person,
+          size: 24,
+          color: AppColors.onSurfaceVariant.withOpacity(0.5),
+        ),
+      ),
+    );
   }
 }
 

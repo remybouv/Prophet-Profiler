@@ -47,7 +47,7 @@ class BetButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.gold,
           foregroundColor: AppColors.royalIndigo,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -58,14 +58,18 @@ class BetButton extends StatelessWidget {
         label: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Qui sera le champion ?',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+            Flexible(
+              child: Text(
+                'Qui sera le champion ?',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             _buildBadge(),
           ],
         ),
@@ -81,7 +85,7 @@ class BetButton extends StatelessWidget {
         style: OutlinedButton.styleFrom(
           side: const BorderSide(color: AppColors.gold, width: 2),
           foregroundColor: AppColors.gold,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -90,14 +94,18 @@ class BetButton extends StatelessWidget {
         label: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Voir les paris',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+            Flexible(
+              child: Text(
+                'Voir les paris',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             _buildBadge(),
           ],
         ),
@@ -113,7 +121,7 @@ class BetButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.surfaceVariant,
           foregroundColor: AppColors.onSurfaceVariant,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -121,11 +129,15 @@ class BetButton extends StatelessWidget {
           disabledForegroundColor: AppColors.onSurfaceVariant.withOpacity(0.5),
         ),
         icon: Icon(Icons.casino, size: 24, color: AppColors.onSurfaceVariant.withOpacity(0.5)),
-        label: const Text(
-          'Minimum 2 joueurs requis',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
+        label: const Flexible(
+          child: Text(
+            'Minimum 2 joueurs requis',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
           ),
         ),
       ),

@@ -130,7 +130,7 @@ class HomePage extends StatelessWidget {
               developer.log('🎮 Bouton Nouvelle Session cliqué', name: 'HomePage');
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const SessionPage()),
+                MaterialPageRoute(builder: (context) => const NewSessionWithBetPage()),
               );
             },
             style: ElevatedButton.styleFrom(
@@ -141,9 +141,9 @@ class HomePage extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            icon: const Icon(Icons.casino),
+            icon: const Icon(Icons.add),
             label: const Text(
-              'Session active',
+              'Nouvelle Session',
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
