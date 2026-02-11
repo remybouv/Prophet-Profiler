@@ -54,7 +54,7 @@ class BetButton extends StatelessWidget {
           elevation: 4,
           shadowColor: AppColors.gold.withOpacity(0.4),
         ),
-        icon: const Icon(Icons.casino, size: 24),
+        icon: const Icon(Icons.casino, size: 22),
         label: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -90,7 +90,7 @@ class BetButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        icon: const Icon(Icons.visibility, size: 24),
+        icon: const Icon(Icons.visibility, size: 22),
         label: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -146,7 +146,7 @@ class BetButton extends StatelessWidget {
 
   Widget _buildBadge() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: hasUserBet 
             ? AppColors.gold.withOpacity(0.2) 
@@ -160,9 +160,9 @@ class BetButton extends StatelessWidget {
         ),
       ),
       child: Text(
-        '$betsCount/$totalParticipants paris',
+        '$betsCount/$totalParticipants',
         style: TextStyle(
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: FontWeight.w600,
           color: hasUserBet ? AppColors.gold : AppColors.royalIndigo,
         ),

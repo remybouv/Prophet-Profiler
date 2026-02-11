@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ProphetProfiler.Api.Controllers;
 using ProphetProfiler.Api.Data;
 using ProphetProfiler.Api.Models;
@@ -15,6 +16,11 @@ public class SessionsControllerTests
         return TestDbContextFactory.Create();
     }
 
+    private static ILogger<SessionsController> CreateLogger()
+    {
+        return LoggerFactory.Create(_ => { }).CreateLogger<SessionsController>();
+    }
+
     #region TransitionStatus - Tests
 
     [Fact]
@@ -24,7 +30,7 @@ public class SessionsControllerTests
         await using var context = CreateContext();
         var betManager = new BetManager(context);
         var rankingService = new RankingService(context);
-        var controller = new SessionsController(context, betManager, rankingService);
+        var controller = new SessionsController(context, betManager, rankingService, CreateLogger());
         
         var alice = PlayerBuilder.AggressivePlayer().WithName("Alice").Build();
         var bob = PlayerBuilder.PatientPlayer().WithName("Bob").Build();
@@ -59,7 +65,7 @@ public class SessionsControllerTests
         await using var context = CreateContext();
         var betManager = new BetManager(context);
         var rankingService = new RankingService(context);
-        var controller = new SessionsController(context, betManager, rankingService);
+        var controller = new SessionsController(context, betManager, rankingService, CreateLogger());
         
         var alice = PlayerBuilder.AggressivePlayer().WithName("Alice").Build();
         var game = BoardGameBuilder.Catan().Build();
@@ -91,7 +97,7 @@ public class SessionsControllerTests
         await using var context = CreateContext();
         var betManager = new BetManager(context);
         var rankingService = new RankingService(context);
-        var controller = new SessionsController(context, betManager, rankingService);
+        var controller = new SessionsController(context, betManager, rankingService, CreateLogger());
         
         var alice = PlayerBuilder.AggressivePlayer().Build();
         var bob = PlayerBuilder.PatientPlayer().Build();
@@ -126,7 +132,7 @@ public class SessionsControllerTests
         await using var context = CreateContext();
         var betManager = new BetManager(context);
         var rankingService = new RankingService(context);
-        var controller = new SessionsController(context, betManager, rankingService);
+        var controller = new SessionsController(context, betManager, rankingService, CreateLogger());
         
         var alice = PlayerBuilder.AggressivePlayer().Build();
         var bob = PlayerBuilder.PatientPlayer().Build();
@@ -159,7 +165,7 @@ public class SessionsControllerTests
         await using var context = CreateContext();
         var betManager = new BetManager(context);
         var rankingService = new RankingService(context);
-        var controller = new SessionsController(context, betManager, rankingService);
+        var controller = new SessionsController(context, betManager, rankingService, CreateLogger());
 
         // Act
         var result = await controller.TransitionStatus(Guid.NewGuid(), new TransitionRequest(SessionStatus.Betting));
@@ -180,7 +186,7 @@ public class SessionsControllerTests
         await using var context = CreateContext();
         var betManager = new BetManager(context);
         var rankingService = new RankingService(context);
-        var controller = new SessionsController(context, betManager, rankingService);
+        var controller = new SessionsController(context, betManager, rankingService, CreateLogger());
         
         var alice = PlayerBuilder.AggressivePlayer().Build();
         var bob = PlayerBuilder.PatientPlayer().Build();
@@ -199,7 +205,7 @@ public class SessionsControllerTests
         await context.SaveChangesAsync();
 
         // Act - Auto-pari interdit
-        var result = await controller.PlaceBet(session.Id, new PlaceBetRequest(alice.Id, alice.Id));
+        var result = await controller.PlaceBet(session.Id, new PlaceBetSessionRequest(alice.Id, alice.Id));
 
         // Assert
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result.Result);
@@ -217,7 +223,7 @@ public class SessionsControllerTests
         await using var context = CreateContext();
         var betManager = new BetManager(context);
         var rankingService = new RankingService(context);
-        var controller = new SessionsController(context, betManager, rankingService);
+        var controller = new SessionsController(context, betManager, rankingService, CreateLogger());
         
         var alice = PlayerBuilder.AggressivePlayer().WithName("Alice").Build();
         var bob = PlayerBuilder.PatientPlayer().WithName("Bob").Build();
