@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:prophet_profiler/src/core/theme/widgets_theme.dart';
 import 'package:prophet_profiler/src/data/models/bet_session_models.dart';
 import 'package:prophet_profiler/src/presentation/blocs/active_session_bloc.dart';
-import 'package:prophet_profiler/src/presentation/pages/home_page_v2.dart';
+import 'package:prophet_profiler/src/presentation/pages/home_page.dart';
 
 /// Page Session Active V2
 /// 
@@ -165,7 +165,7 @@ class _ActiveSessionPageViewState extends State<_ActiveSessionPageView> {
           ElevatedButton.icon(
             onPressed: () => Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const HomePageV2()),
+              MaterialPageRoute(builder: (_) => const HomePage()),
             ),
             icon: const Icon(Icons.home),
             label: const Text('Retour à l\'accueil'),
