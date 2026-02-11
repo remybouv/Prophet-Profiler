@@ -85,7 +85,7 @@ class ApiService {
   Future<dynamic> getSession(String sessionId) async {
     try {
       developer.log('📋 Chargement de la session: $sessionId', name: 'ApiService');
-      final response = await _dio.get('/api/sessions/$sessionId');
+      final response = await _dio.get('/sessions/$sessionId');
       return response.data;
     } catch (e) {
       developer.log('❌ Erreur chargement session: $e', name: 'ApiService');
@@ -97,7 +97,7 @@ class ApiService {
     try {
       developer.log('🔄 Transition de la session $sessionId vers $newStatus', name: 'ApiService');
       final response = await _dio.post(
-        '/api/sessions/$sessionId/transition',
+        '/sessions/$sessionId/transition',
         data: {'status': newStatus},
       );
       return response.data;
@@ -111,7 +111,7 @@ class ApiService {
     try {
       developer.log('🏆 Completion de la session $sessionId, gagnant: $winnerId', name: 'ApiService');
       final response = await _dio.post(
-        '/api/sessions/$sessionId/complete',
+        '/sessions/$sessionId/complete',
         data: {'winnerId': winnerId},
       );
       return response.data;
@@ -125,7 +125,7 @@ class ApiService {
   Future<BetsSummary> getBetsSummary(String sessionId) async {
     try {
       developer.log('📊 Chargement du résumé des paris pour session: $sessionId', name: 'ApiService');
-      final response = await _dio.get('/api/sessions/$sessionId/bets/summary');
+      final response = await _dio.get('/sessions/$sessionId/bets/summary');
       return BetsSummary.fromJson(response.data);
     } catch (e) {
       developer.log('❌ Erreur chargement résumé paris: $e', name: 'ApiService');
@@ -141,7 +141,7 @@ class ApiService {
         predictedWinnerId: predictedWinnerId,
       );
       final response = await _dio.post(
-        '/api/sessions/$sessionId/bets',
+        '/sessions/$sessionId/bets',
         data: request.toJson(),
       );
       return Bet.fromJson(response.data);
@@ -154,7 +154,7 @@ class ApiService {
   Future<BetHistory> getPlayerBetHistory(String playerId) async {
     try {
       developer.log('📜 Chargement de l\'historique des paris pour joueur: $playerId', name: 'ApiService');
-      final response = await _dio.get('/api/players/$playerId/bets/history');
+      final response = await _dio.get('/players/$playerId/bets/history');
       return BetHistory.fromJson(response.data);
     } catch (e) {
       developer.log('❌ Erreur chargement historique paris: $e', name: 'ApiService');
