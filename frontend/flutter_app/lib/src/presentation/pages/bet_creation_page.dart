@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:prophet_profiler/src/core/theme/widgets_theme.dart';
+import 'package:prophet_profiler/src/data/models/bet_session_models.dart';
 import 'package:prophet_profiler/src/presentation/blocs/bet_creation_bloc.dart';
 import 'package:prophet_profiler/src/presentation/pages/active_session_page.dart';
 
@@ -75,7 +76,7 @@ class _BetCreationPageViewState extends State<_BetCreationPageView> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.error_outline, size: 64, color: AppColors.rust),
+          const Icon(Icons.error_outline, size: 64, color: AppColors.rust),
           const SizedBox(height: 16),
           Text(
             error,
@@ -110,6 +111,9 @@ class _BetCreationPageViewState extends State<_BetCreationPageView> {
           _buildPlayerSelector(state),
           const SizedBox(height: 24),
 
+          _buildPlayerBet(state),
+          const SizedBox(height: 24),
+
           // Date et lieu (optionnels)
           _buildOptionalFields(state),
           const SizedBox(height: 32),
@@ -136,11 +140,11 @@ class _BetCreationPageViewState extends State<_BetCreationPageView> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.gold.withOpacity(0.3)),
       ),
-      child: Column(
+      child: const Column(
         children: [
-          const Icon(Icons.casino, size: 48, color: AppColors.gold),
-          const SizedBox(height: 12),
-          const Text(
+          Icon(Icons.casino, size: 48, color: AppColors.gold),
+          SizedBox(height: 12),
+          Text(
             'Nouvelle Session de Paris',
             style: TextStyle(
               fontSize: 22,
@@ -149,7 +153,7 @@ class _BetCreationPageViewState extends State<_BetCreationPageView> {
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             'Sélectionnez un jeu et les participants',
             style: TextStyle(
@@ -173,11 +177,11 @@ class _BetCreationPageViewState extends State<_BetCreationPageView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
-              const Icon(Icons.sports_esports, color: AppColors.gold),
-              const SizedBox(width: 8),
-              const Text(
+              Icon(Icons.sports_esports, color: AppColors.gold),
+              SizedBox(width: 8),
+              Text(
                 'Jeu',
                 style: TextStyle(
                   fontSize: 16,
@@ -281,6 +285,58 @@ class _BetCreationPageViewState extends State<_BetCreationPageView> {
     );
   }
 
+   Widget _buildPlayerBet(BetCreationState state) {
+    return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.scoreboard, color: AppColors.gold, size: 18),
+                SizedBox(width: 8),
+                Text(
+                  'Paris',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.cream,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: state.selectedPlayerIds.map((playerId) {
+                // Trouver le joueur correspondant à l'ID
+                final player = state.availablePlayers.firstWhere(
+                  (p) => p.id == playerId,
+                  orElse: () => PlayerSummaryDto(
+                    id: playerId,
+                    name: 'Joueur inconnu',
+                    totalSessions: 0,
+                    totalWins: 0,
+                  ),
+                );
+
+                return _PlayerBetCard(
+                  player: player,
+                  availablePlayers: state.availablePlayers,
+                  onRemove: () => context.read<BetCreationBloc>().togglePlayerSelection(playerId),
+                );
+              }).toList(),
+            ),
+          ]
+        )
+      );
+  }
+
   Widget _buildOptionalFields(BetCreationState state) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -291,11 +347,11 @@ class _BetCreationPageViewState extends State<_BetCreationPageView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
-              const Icon(Icons.settings, color: AppColors.onSurfaceVariant),
-              const SizedBox(width: 8),
-              const Text(
+              Icon(Icons.settings, color: AppColors.onSurfaceVariant),
+              SizedBox(width: 8),
+              Text(
                 'Options (optionnel)',
                 style: TextStyle(
                   fontSize: 16,
@@ -460,6 +516,110 @@ class _PlayerChip extends StatelessWidget {
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Widget pour afficher un joueur avec ses paris
+class _PlayerBetCard extends StatefulWidget {
+  final PlayerSummaryDto player;
+  final List<PlayerSummaryDto> availablePlayers;
+  final VoidCallback onRemove;
+
+  const _PlayerBetCard({
+    required this.player,
+    required this.availablePlayers,
+    required this.onRemove,
+  });
+
+  @override
+  State<_PlayerBetCard> createState() => _PlayerBetCardState();
+}
+
+class _PlayerBetCardState extends State<_PlayerBetCard> {
+
+  String? dropdownvalue;
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.royalIndigo.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.gold.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // En-tête avec info joueur
+          Row(
+            children: [
+              if (widget.player.photoUrl != null)
+                CircleAvatar(
+                  radius: 20,
+                  backgroundImage: NetworkImage(widget.player.photoUrl!),
+                )
+              else
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: AppColors.gold.withOpacity(0.3),
+                  child: Text(
+                    widget.player.name.isNotEmpty
+                        ? widget.player.name[0].toUpperCase()
+                        : '?',
+                    style: const TextStyle(
+                      color: AppColors.gold,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.player.name,
+                      style: const TextStyle(
+                        color: AppColors.cream,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      '${widget.player.totalWins}/${widget.player.totalSessions} victoires',
+                      style: TextStyle(
+                        color: AppColors.onSurfaceVariant.withOpacity(0.7),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, color: AppColors.rust),
+                onPressed: widget.onRemove,
+                tooltip: 'Retirer ce joueur',
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          DropdownButton(hint: const Text('Sélectionner une option'), isExpanded: true, value: dropdownvalue, items: widget.availablePlayers.map((player) {
+            return DropdownMenuItem(value: player.id, child: Text(player.name));
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              dropdownvalue = value!;
+            });
+          },),
+        ],
       ),
     );
   }
