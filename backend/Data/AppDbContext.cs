@@ -29,8 +29,9 @@ public class AppDbContext : DbContext
         // BoardGame - GameProfile (1:1)
         modelBuilder.Entity<BoardGame>()
             .HasOne(bg => bg.Profile)
-            .WithOne(gp => gp.BoardGame)
-            .HasForeignKey<GameProfile>(gp => gp.BoardGameId);
+            .WithOne()
+            .HasForeignKey<GameProfile>(gp => gp.BoardGameId)
+            .OnDelete(DeleteBehavior.Cascade);
         
         // GameSession - Participants (N:N)
         modelBuilder.Entity<GameSession>()
