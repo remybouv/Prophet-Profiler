@@ -31,6 +31,7 @@ dependencies:
   
   # Image & Camera
   image_picker: ^1.0.7
+  provider: ^6.1.5+1
   
 dev_dependencies:
   flutter_test:

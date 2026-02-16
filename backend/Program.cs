@@ -62,7 +62,7 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "Une erreur s'est produite lors de la migration de la base de donn�es.");
+        logger.LogError(ex, "Une erreur s'est produite lors de la migration de la base de données.");
     }
 }
 

@@ -32,7 +32,6 @@ public class GameProfile
 {
     [Key]
     public Guid BoardGameId { get; set; }
-    public BoardGame BoardGame { get; set; } = null!;
     
     // 4 axes requis par le jeu (1-5)
     public int Aggressivity { get; set; } // 1-5

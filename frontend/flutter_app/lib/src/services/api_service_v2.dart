@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:prophet_profiler/src/core/config/app_config.dart';
+import 'package:prophet_profiler/src/data/models/game_model.dart';
 import 'package:prophet_profiler/src/data/models/player_model.dart';
 import 'package:prophet_profiler/src/data/models/bet_model.dart';
 import 'package:prophet_profiler/src/data/models/bet_session_models.dart';
@@ -232,14 +233,21 @@ class ApiService {
   // EXISTANT: Games API
   // ============================================================================
 
-  Future<List<dynamic>> getGames() async {
+  Future<List<Game>> getGames() async {
     final response = await _dio.get('/games');
-    return response.data;
+    return (response.data as List)
+    .map((json) => Game.fromJson(json))
+    .toList();
   }
 
   Future<dynamic> getGame(String gameId) async {
     final response = await _dio.get('/games/$gameId');
     return response.data;
+  }
+
+  Future<Game> createGame(Game game) async {
+    final response = await _dio.post('/games', data: game.toJson());
+    return Game.fromJson(response.data);
   }
 
   // ============================================================================

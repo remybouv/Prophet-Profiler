@@ -18,7 +18,7 @@ AvailablePlayersResponse _$AvailablePlayersResponseFromJson(
 Map<String, dynamic> _$AvailablePlayersResponseToJson(
         AvailablePlayersResponse instance) =>
     <String, dynamic>{
-      'players': instance.players.map((e) => e.toJson()).toList(),
+      'players': instance.players,
       'totalCount': instance.totalCount,
     };
 
@@ -44,12 +44,10 @@ CreateBetSessionRequest _$CreateBetSessionRequestFromJson(
         Map<String, dynamic> json) =>
     CreateBetSessionRequest(
       boardGameId: json['boardGameId'] as String,
-      playerIds: (json['playerIds'] as List<dynamic>)
-          .map((e) => e as String)
-          .toList(),
-      date: json['date'] == null
-          ? null
-          : DateTime.parse(json['date'] as String),
+      playerIds:
+          (json['playerIds'] as List<dynamic>).map((e) => e as String).toList(),
+      date:
+          json['date'] == null ? null : DateTime.parse(json['date'] as String),
       location: json['location'] as String?,
       notes: json['notes'] as String?,
     );
@@ -95,8 +93,8 @@ Map<String, dynamic> _$SessionActiveDetailsToJson(
       'status': instance.status,
       'date': instance.date.toIso8601String(),
       'location': instance.location,
-      'participants': instance.participants.map((e) => e.toJson()).toList(),
-      'bets': instance.bets.map((e) => e.toJson()).toList(),
+      'participants': instance.participants,
+      'bets': instance.bets,
       'currentWinnerId': instance.currentWinnerId,
       'currentWinnerName': instance.currentWinnerName,
       'totalPointsInPlay': instance.totalPointsInPlay,
@@ -117,8 +115,7 @@ ParticipantBetInfo _$ParticipantBetInfoFromJson(Map<String, dynamic> json) =>
           : DateTime.parse(json['betPlacedAt'] as String),
     );
 
-Map<String, dynamic> _$ParticipantBetInfoToJson(
-        ParticipantBetInfo instance) =>
+Map<String, dynamic> _$ParticipantBetInfoToJson(ParticipantBetInfo instance) =>
     <String, dynamic>{
       'playerId': instance.playerId,
       'name': instance.name,
@@ -129,8 +126,7 @@ Map<String, dynamic> _$ParticipantBetInfoToJson(
       'betPlacedAt': instance.betPlacedAt?.toIso8601String(),
     };
 
-BetDetailDto _$BetDetailDtoFromJson(Map<String, dynamic> json) =>
-    BetDetailDto(
+BetDetailDto _$BetDetailDtoFromJson(Map<String, dynamic> json) => BetDetailDto(
       betId: json['betId'] as String,
       bettorId: json['bettorId'] as String,
       bettorName: json['bettorName'] as String,
@@ -184,8 +180,7 @@ Map<String, dynamic> _$SetWinnerResponseToJson(SetWinnerResponse instance) =>
       'winnerId': instance.winnerId,
       'winnerName': instance.winnerName,
       'newStatus': instance.newStatus,
-      'betResolutions':
-          instance.betResolutions.map((e) => e.toJson()).toList(),
+      'betResolutions': instance.betResolutions,
       'totalPointsAwarded': instance.totalPointsAwarded,
       'totalPointsDeducted': instance.totalPointsDeducted,
     };
@@ -217,9 +212,8 @@ ActiveSessionInfo _$ActiveSessionInfoFromJson(Map<String, dynamic> json) =>
       sessionId: json['sessionId'] as String?,
       boardGameName: json['boardGameName'] as String?,
       status: json['status'] as String?,
-      date: json['date'] == null
-          ? null
-          : DateTime.parse(json['date'] as String),
+      date:
+          json['date'] == null ? null : DateTime.parse(json['date'] as String),
       participantCount: (json['participantCount'] as num?)?.toInt(),
       betsPlacedCount: (json['betsPlacedCount'] as num?)?.toInt(),
       hasActiveSession: json['hasActiveSession'] as bool,
@@ -253,11 +247,10 @@ HomepageDataResponse _$HomepageDataResponseFromJson(
 Map<String, dynamic> _$HomepageDataResponseToJson(
         HomepageDataResponse instance) =>
     <String, dynamic>{
-      'activeSession': instance.activeSession?.toJson(),
+      'activeSession': instance.activeSession,
       'totalPlayers': instance.totalPlayers,
       'totalGames': instance.totalGames,
-      'recentSessions':
-          instance.recentSessions.map((e) => e.toJson()).toList(),
+      'recentSessions': instance.recentSessions,
     };
 
 RecentSessionDto _$RecentSessionDtoFromJson(Map<String, dynamic> json) =>

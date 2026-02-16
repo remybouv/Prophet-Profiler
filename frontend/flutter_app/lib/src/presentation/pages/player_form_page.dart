@@ -183,15 +183,15 @@ class _PlayerFormPageState extends State<PlayerFormPage> {
                         : null,
                   ),
                   if (_isUploadingPhoto)
-                    Positioned.fill(
+                    const Positioned.fill(
                       child: CircleAvatar(
                         radius: 60,
                         backgroundColor: Colors.black54,
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const CircularProgressIndicator(color: Colors.white),
-                            const SizedBox(height: 8),
+                            CircularProgressIndicator(color: Colors.white),
+                            SizedBox(height: 8),
                             Text(
                               'Upload...',
                               style: TextStyle(

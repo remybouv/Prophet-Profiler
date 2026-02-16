@@ -51,7 +51,7 @@ Map<String, dynamic> _$BetsSummaryToJson(BetsSummary instance) =>
       'sessionStatus': _$SessionStatusEnumMap[instance.sessionStatus]!,
       'totalBets': instance.totalBets,
       'totalParticipants': instance.totalParticipants,
-      'bets': instance.bets.map((e) => e.toJson()).toList(),
+      'bets': instance.bets,
       'currentUserBetOn': instance.currentUserBetOn,
       'actualWinnerId': instance.actualWinnerId,
       'actualWinnerName': instance.actualWinnerName,
@@ -84,7 +84,7 @@ Map<String, dynamic> _$BetHistoryToJson(BetHistory instance) =>
       'wonBets': instance.wonBets,
       'lostBets': instance.lostBets,
       'winRate': instance.winRate,
-      'history': instance.history.map((e) => e.toJson()).toList(),
+      'history': instance.history,
     };
 
 BetHistoryItem _$BetHistoryItemFromJson(Map<String, dynamic> json) =>
