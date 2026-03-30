@@ -5,7 +5,9 @@ part 'game_model.g.dart';
 
 @JsonSerializable()
 class Game extends Equatable {
+  @JsonKey(name: 'id')
   final String id;
+  @JsonKey(name: 'name')
   final String gameName;
 
   const Game({
@@ -14,7 +16,11 @@ class Game extends Equatable {
   });
 
   factory Game.fromJson(Map<String,dynamic> json) => _$GameFromJson(json);
-  Map<String, dynamic> toJson() => _$GameToJson(this);
+  
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'id': id,
+    'name': gameName
+  };
 
   @override
   List<Object?> get props => [

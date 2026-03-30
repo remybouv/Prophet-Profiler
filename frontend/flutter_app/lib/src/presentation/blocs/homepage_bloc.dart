@@ -148,7 +148,7 @@ class HomepageBloc extends ChangeNotifier {
     developer.log('🔄 Démarrage auto-refresh homepage', name: 'HomepageBloc');
     
     _refreshTimer = Timer.periodic(interval, (_) {
-      checkActiveSession();
+      // checkActiveSession();
     });
   }
 

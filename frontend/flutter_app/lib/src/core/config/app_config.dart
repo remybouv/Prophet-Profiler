@@ -5,7 +5,7 @@ class AppConfig {
   // URL de l'API - Changez cette valeur selon votre environnement
   static const String apiBaseUrl = String.fromEnvironment(
     'API_URL',
-    defaultValue: 'http://localhost:49705/api', // HTTP (pas de problème de certificat)
+    defaultValue: 'https://prophet-profiler-api.azurewebsites.net/api', // HTTP (pas de problème de certificat)
   );
   
   // Configurations selon la plateforme:

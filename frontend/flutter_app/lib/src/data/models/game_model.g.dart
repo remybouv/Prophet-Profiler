@@ -8,10 +8,10 @@ part of 'game_model.dart';
 
 Game _$GameFromJson(Map<String, dynamic> json) => Game(
       id: json['id'] as String,
-      gameName: json['gameName'] as String,
+      gameName: json['name'] as String,
     );
 
 Map<String, dynamic> _$GameToJson(Game instance) => <String, dynamic>{
       'id': instance.id,
-      'gameName': instance.gameName,
+      'name': instance.gameName,
     };
